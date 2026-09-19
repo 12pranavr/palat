@@ -15,7 +15,7 @@ import SeenCard from '../components/SeenCard.jsx'
 export default function Scan() {
   const {
     family, activeId, setActiveId, lastScan, setLastScan,
-    addToCart, inCart, recordScan,
+    addToSafeList, onSafeList, recordScan,
   } = usePalat()
   const [params, setParams] = useSearchParams()
   const mode = params.get('mode') === 'plate' ? 'plate' : 'label'
@@ -162,7 +162,7 @@ export default function Scan() {
   const activeVerdict = result?.verdicts.find((v) => v.personId === activeId)
   const activePerson = family.find((p) => p.id === activeId)
   const productName = result?.label.productName || 'This packet'
-  const packetInCart = result ? inCart(productName, 'packet') : false
+  const packetListed = result ? onSafeList(productName, 'packet', activeId) : false
 
   if (!family.length) {
     return (
@@ -351,12 +351,14 @@ export default function Scan() {
           {result.mode !== 'plate' ? (
             <button
               type="button"
-              className={'wide-add' + (packetInCart ? ' wide-add--done' : '')}
-              disabled={packetInCart}
+              className={'wide-add' + (packetListed ? ' wide-add--done' : '')}
+              disabled={packetListed}
               onClick={() =>
-                addToCart({
+                addToSafeList({
                   name: productName,
                   kind: 'packet',
+                  forPersonId: activeId,
+                  forPerson: activePerson?.name,
                   note: result.label.brand || '',
                   verdicts: Object.fromEntries(
                     result.verdicts.map((v) => [v.personId, v.verdict])
@@ -364,7 +366,9 @@ export default function Scan() {
                 })
               }
             >
-              {packetInCart ? 'This packet is in the cart ✓' : 'Add this packet to the cart anyway'}
+              {packetListed
+                ? `On ${activePerson?.name}'s list ✓`
+                : `Put this packet on ${activePerson?.name}'s list anyway`}
             </button>
           ) : null}
 

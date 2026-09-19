@@ -11,7 +11,12 @@ const WORD = { NO: 'No', SOMETIMES: 'Sometimes', YES: 'Yes' }
 export default function Compare({ person, a, b, onStart, onClear, comparing }) {
   if (!b) {
     return (
-      <button type="button" className="wide-add" disabled={comparing} onClick={onStart}>
+      <button
+        type="button"
+        className="wide-add wide-add--compare"
+        disabled={comparing}
+        onClick={onStart}
+      >
         Compare with another packet
       </button>
     )

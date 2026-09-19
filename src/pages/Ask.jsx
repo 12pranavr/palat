@@ -10,7 +10,7 @@ import Avatar from '../components/Avatar.jsx'
  * while chips steer people to the thing Palat can actually answer.
  */
 export default function Ask() {
-  const { family, history, cart, activeId, setActiveId } = usePalat()
+  const { family, history, listFor, activeId, setActiveId } = usePalat()
   const [question, setQuestion] = useState('')
   const [busy, setBusy] = useState(false)
   const [reply, setReply] = useState(null)
@@ -32,11 +32,12 @@ export default function Ask() {
       .flatMap((h) => h.flags || [])[0]
     if (flag) out.push(`Why is ${flag} a problem?`)
 
-    if (cart.length) out.push(`Is ${cart[0].name} okay for ${person.name}?`)
+    const listed = listFor(person.id)
+    if (listed.length) out.push(`Is ${listed[0].name} okay for ${person.name}?`)
     else out.push(`Is poha okay for ${person.name}?`)
 
     return out.slice(0, 4)
-  }, [person, history, cart])
+  }, [person, history, listFor])
 
   async function send(text) {
     const q = (text ?? question).trim()
@@ -46,7 +47,7 @@ export default function Ask() {
     setReply(null)
     setAsked(q)
     try {
-      const answer = await askAbout({ question: q, person, history, cart })
+      const answer = await askAbout({ question: q, person, history, cart: listFor(person.id) })
       setReply(answer)
       setQuestion('')
     } catch (err) {

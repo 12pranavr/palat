@@ -1024,6 +1024,23 @@ h3 {
   color: #dce8ff;
 }
 
+.ptab-count {
+  font-size: 11px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  margin-left: 2px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+  display: grid;
+  place-items: center;
+}
+
+.ptab--on .ptab-count {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .vdot {
   width: 8px;
   height: 8px;

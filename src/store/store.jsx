@@ -1,13 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { PROFILES } from '../data/profiles.js'
 
-// Everything that has to survive a page change lives here. Family and cart also
+// Everything that has to survive a page change lives here. Family and safe list also
 // survive a reload — losing the family you just entered because you tapped Scan
 // would make the app feel broken.
 
 const KEYS = {
   family: 'palat.family.v1',
-  cart: 'palat.cart.v1',
+  safeList: 'palat.safelist.v1',
   active: 'palat.active.v1',
   history: 'palat.history.v1',
 }
@@ -51,11 +51,27 @@ export function initialFor(person) {
   return String(person.name || '?').trim().charAt(0).toUpperCase()
 }
 
+/**
+ * Entries used to live in one shared list with no owner. Anything saved before
+ * the list became per-person is handed to the first person in the family rather
+ * than vanishing — nobody should open the app and find their list empty.
+ */
+function loadSafeList() {
+  const current = load(KEYS.safeList, null)
+  if (current) return current
+
+  const legacy = load('palat.cart.v1', [])
+  if (!legacy.length) return []
+
+  const firstId = (load(KEYS.family, PROFILES)[0] || {}).id
+  return legacy.map((item) => ({ ...item, forPersonId: item.forPersonId || firstId }))
+}
+
 const PalatContext = createContext(null)
 
 export function PalatProvider({ children }) {
   const [family, setFamily] = useState(() => load(KEYS.family, PROFILES))
-  const [cart, setCart] = useState(() => load(KEYS.cart, []))
+  const [safeList, setSafeList] = useState(() => loadSafeList())
   const [activeId, setActiveId] = useState(() => load(KEYS.active, PROFILES[0].id))
   const [history, setHistory] = useState(() => load(KEYS.history, []))
 
@@ -63,7 +79,7 @@ export function PalatProvider({ children }) {
   const [lastScan, setLastScan] = useState(null)
 
   useEffect(() => save(KEYS.family, family), [family])
-  useEffect(() => save(KEYS.cart, cart), [cart])
+  useEffect(() => save(KEYS.safeList, safeList), [safeList])
   useEffect(() => save(KEYS.active, activeId), [activeId])
   useEffect(() => save(KEYS.history, history), [history])
 
@@ -86,30 +102,43 @@ export function PalatProvider({ children }) {
     const replaceFamily = (people) =>
       setFamily(people.map((p) => ({ ...p, id: p.id || newId() })))
 
-    const addToCart = (item) => {
+    // Every entry belongs to one person. The same packet can sit on Chotu's list
+    // and be absent from Dadaji's, which is the whole point of the app.
+    const addToSafeList = (item) => {
       const entry = {
         id: newId(),
         addedAt: Date.now(),
         kind: 'swap',
         verdicts: {},
+        forPersonId: activeId,
         ...item,
       }
-      setCart((c) => {
-        // Same name, same kind, already in the basket — do not stack duplicates.
-        const clash = c.find(
-          (i) => i.name.toLowerCase() === entry.name.toLowerCase() && i.kind === entry.kind
+      setSafeList((list) => {
+        const clash = list.find(
+          (i) =>
+            i.forPersonId === entry.forPersonId &&
+            i.kind === entry.kind &&
+            i.name.toLowerCase() === entry.name.toLowerCase()
         )
-        return clash ? c : [entry, ...c]
+        return clash ? list : [entry, ...list]
       })
       return entry
     }
 
-    const removeFromCart = (id) => setCart((c) => c.filter((i) => i.id !== id))
-    const clearCart = () => setCart([])
+    const removeFromSafeList = (id) => setSafeList((l) => l.filter((i) => i.id !== id))
 
-    const inCart = (name, kind) =>
-      cart.some(
-        (i) => i.name.toLowerCase() === String(name).toLowerCase() && (!kind || i.kind === kind)
+    /** Clearing is per person — emptying Dadaji's must not empty Chotu's. */
+    const clearSafeList = (personId) =>
+      setSafeList((l) => (personId ? l.filter((i) => i.forPersonId !== personId) : []))
+
+    const listFor = (personId) => safeList.filter((i) => i.forPersonId === personId)
+
+    const onSafeList = (name, kind, personId = activeId) =>
+      safeList.some(
+        (i) =>
+          i.forPersonId === personId &&
+          i.name.toLowerCase() === String(name).toLowerCase() &&
+          (!kind || i.kind === kind)
       )
 
     /**
@@ -142,7 +171,8 @@ export function PalatProvider({ children }) {
 
     return {
       family,
-      cart,
+      safeList,
+      listFor,
       activeId,
       lastScan,
       history,
@@ -154,13 +184,13 @@ export function PalatProvider({ children }) {
       updatePerson,
       removePerson,
       replaceFamily,
-      addToCart,
-      removeFromCart,
-      clearCart,
-      inCart,
+      addToSafeList,
+      removeFromSafeList,
+      clearSafeList,
+      onSafeList,
       activePerson: family.find((p) => p.id === activeId) || family[0] || null,
     }
-  }, [family, cart, activeId, lastScan, history])
+  }, [family, safeList, activeId, lastScan, history])
 
   return <PalatContext.Provider value={value}>{children}</PalatContext.Provider>
 }

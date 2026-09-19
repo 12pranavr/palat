@@ -5,8 +5,9 @@ import Avatar from '../components/Avatar.jsx'
 import Sparkle from '../components/Sparkle.jsx'
 
 export default function Home() {
-  const { family, cart, activeId, setActiveId, lastScan, activePerson } = usePalat()
+  const { family, listFor, activeId, setActiveId, lastScan, activePerson } = usePalat()
   const navigate = useNavigate()
+  const listed = activePerson ? listFor(activePerson.id) : []
 
   return (
     <div className="page page--home">
@@ -112,22 +113,27 @@ export default function Home() {
 
       <section className="block">
         <div className="block-head">
-          <h2>{activePerson ? activePerson.name + "'s cart" : 'Cart'}</h2>
-          <Link to="/cart" className="block-action">
-            {cart.length ? 'Open cart' : 'Empty'}
+          <h2>
+            {activePerson ? activePerson.name + "'s safe list" : 'Safe list'}
+          </h2>
+          <Link to="/safe" className="block-action">
+            {listed.length ? 'Open' : 'Empty'}
           </Link>
         </div>
-        {cart.length ? (
+        {listed.length ? (
           <div className="pills">
-            {cart.slice(0, 6).map((item) => (
+            {listed.slice(0, 6).map((item) => (
               <span key={item.id} className="pill">{item.name}</span>
             ))}
-            {cart.length > 6 ? <span className="pill pill--more">+{cart.length - 6}</span> : null}
+            {listed.length > 6 ? (
+              <span className="pill pill--more">+{listed.length - 6}</span>
+            ) : null}
           </div>
         ) : (
           <p className="block-sub">
-            Nothing in the cart yet. Whatever Palat suggests instead of a packet
-            lands here, so the shopping list builds itself as you walk the aisle.
+            Nothing on {activePerson ? activePerson.name + "'s" : 'the'} list yet.
+            Whatever Palat suggests instead of a packet lands here, so the list
+            builds itself as you walk the aisle.
           </p>
         )}
       </section>

@@ -9,7 +9,7 @@ const WORD = { NO: 'No', SOMETIMES: 'Sometimes', YES: 'Yes' }
  * sorted best-first for whoever is selected.
  */
 export default function BatchResults({ products, person, onOpen }) {
-  const { addToCart, inCart } = usePalat()
+  const { addToSafeList, onSafeList } = usePalat()
 
   const rows = products
     .map((p) => {
@@ -50,7 +50,7 @@ export default function BatchResults({ products, person, onOpen }) {
           const v = row.verdict
           const name = row.label.productName || 'Packet'
           const swap = v.better && v.better !== '—'
-          const added = swap && inCart(v.better, 'swap')
+          const added = swap && onSafeList(v.better, 'swap', person.id)
 
           return (
             <li key={row.index} className={'batch-row batch-row--' + TONE[v.verdict]}>
@@ -73,15 +73,16 @@ export default function BatchResults({ products, person, onOpen }) {
                     className={'swap-add' + (added ? ' swap-add--done' : '')}
                     disabled={added}
                     onClick={() =>
-                      addToCart({
+                      addToSafeList({
                         name: v.better,
                         kind: 'swap',
                         note: 'Instead of ' + name,
                         forPerson: person.name,
+                        forPersonId: person.id,
                       })
                     }
                   >
-                    {added ? 'In cart ✓' : 'Add'}
+                    {added ? 'On the list ✓' : 'Add'}
                   </button>
                 </div>
               ) : null}

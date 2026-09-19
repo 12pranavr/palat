@@ -8,16 +8,16 @@ const NAV = [
   { to: '/', label: 'Home', end: true, icon: HomeIcon },
   { to: '/scan', label: 'Scan', icon: ScanIcon },
   { to: '/family', label: 'Family', icon: FamilyIcon },
-  { to: '/cart', label: 'Cart', icon: CartIcon },
+  { to: '/safe', label: 'Safe list', icon: SafeIcon },
   { to: '/ask', label: 'Ask', icon: AskIcon },
   { to: '/report', label: 'Report', icon: ReportIcon },
 ]
 
 export default function Layout() {
-  const { cart, family } = usePalat()
+  const { listFor, activeId, family } = usePalat()
 
   const badgeFor = (to) => {
-    if (to === '/cart' && cart.length) return cart.length
+    if (to === '/safe') { const n = listFor(activeId).length; return n || null }
     if (to === '/family' && family.length) return family.length
     return null
   }
@@ -67,7 +67,7 @@ export default function Layout() {
           <NavLink key={to} to={to} end={end} className="tabbar-link">
             <span className="tabbar-icon">
               <Icon />
-              {badgeFor(to) && to === '/cart' ? (
+              {badgeFor(to) && to === '/safe' ? (
                 <span className="tabbar-badge">{badgeFor(to)}</span>
               ) : null}
             </span>
@@ -127,12 +127,12 @@ function ReportIcon() {
   )
 }
 
-function CartIcon() {
+function SafeIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 4h2.2l2.2 10.4a1.5 1.5 0 0 0 1.5 1.2h7.8a1.5 1.5 0 0 0 1.5-1.2L20 7.5H6" />
-      <circle cx="9.5" cy="19.5" r="1.3" />
-      <circle cx="16.5" cy="19.5" r="1.3" />
+      <path d="M6 4h9l4 4v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+      <path d="M14 4v5h5" />
+      <path d="M9 14.2l2 2 4-4.4" />
     </svg>
   )
 }

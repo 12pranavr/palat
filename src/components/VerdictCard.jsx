@@ -7,12 +7,12 @@ const TONE = {
 }
 
 export default function VerdictCard({ person, verdict, productName }) {
-  const { addToCart, inCart } = usePalat()
+  const { addToSafeList, onSafeList } = usePalat()
   if (!verdict || !person) return null
 
   const tone = TONE[verdict.verdict] || TONE.SOMETIMES
   const hasSwap = verdict.better && verdict.better !== '—'
-  const swapAdded = hasSwap && inCart(verdict.better, 'swap')
+  const swapAdded = hasSwap && onSafeList(verdict.better, 'swap', person.id)
 
   return (
     <section className={'verdict verdict--' + tone.key} key={person.id + verdict.verdict}>
@@ -62,15 +62,16 @@ export default function VerdictCard({ person, verdict, productName }) {
             className={'swap-add' + (swapAdded ? ' swap-add--done' : '')}
             disabled={swapAdded}
             onClick={() =>
-              addToCart({
+              addToSafeList({
                 name: verdict.better,
                 kind: 'swap',
                 note: 'Instead of ' + (productName || 'the packet you scanned'),
                 forPerson: person.name,
+                forPersonId: person.id,
               })
             }
           >
-            {swapAdded ? 'In cart ✓' : 'Add to cart'}
+            {swapAdded ? 'On the list ✓' : `Add to ${person.name}'s list`}
           </button>
         </div>
       ) : null}

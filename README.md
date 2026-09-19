@@ -85,7 +85,7 @@ string), is labelled on screen throughout, and is cleared with `?demo=0`.
 | `/` | Who is eating, the two scan entry points, the cart at a glance, last scan |
 | `/scan` | Packet or plate. Capture → real-time status → per-person verdict |
 | `/family` | The household. Say it in one box, or hand it a prescription |
-| `/cart` | The shopping list, split into what to pick up and what is not for everyone |
+| `/safe` | Each person's safe list, built as you scan |
 | `/ask` | Food questions about one person, grounded in their profile and your scans |
 | `/report` | Per person, what they did **not** eat — over a week, a month, or all of it |
 
@@ -201,6 +201,14 @@ five-star kitchens, so the setting is not the signal. The plate is.
 **Plate mode never invents a number.** With no label nothing has been measured, so
 a figure like "Sodium ~450 mg" is fabricated precision — it now reports plain
 words or an honest range, and always carries "Estimate — no label".
+
+**The safe list belongs to a person, not the household.** What Dadaji can have is
+not what Chotu can have, so they cannot share a list — each has their own, and the
+same packet can sit on one and be absent from another. "Safe" here means only that
+Palat read the label and it suits that person's conditions; the page says so
+plainly, because the app also has a hygiene read and the two must not be confused.
+Entries saved before the list became per-person are handed to the first person in
+the family rather than disappearing.
 
 **Ask is a bounded question box, not a chatbot.** It answers about one person,
 grounded in their profile, the packets already scanned and the cart — one call
