@@ -127,7 +127,15 @@ function nextKey(total, from) {
   return null
 }
 
-async function callOnce({ apiKey, model, systemInstruction, contents, responseSchema, temperature }) {
+async function callOnce({
+  apiKey,
+  model,
+  systemInstruction,
+  contents,
+  responseSchema,
+  temperature,
+  allowThinking = false,
+}) {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
@@ -141,7 +149,10 @@ async function callOnce({ apiKey, model, systemInstruction, contents, responseSc
           temperature,
           responseMimeType: 'application/json',
           responseSchema,
-          thinkingConfig: { thinkingBudget: THINKING_BUDGET },
+          // Thinking off is the cheap path and is what almost every call uses.
+          // A retry after an empty reply lets the model think, since that is the
+          // one situation where the saving is clearly not worth it.
+          ...(allowThinking ? {} : { thinkingConfig: { thinkingBudget: THINKING_BUDGET } }),
         },
       }),
     }
@@ -176,12 +187,30 @@ async function callOnce({ apiKey, model, systemInstruction, contents, responseSc
   const blocked = payload?.promptFeedback?.blockReason
   if (blocked) throw new Error(`Gemini declined this request (${blocked}).`)
 
-  const text = payload?.candidates?.[0]?.content?.parts
+  const candidate = payload?.candidates?.[0]
+  const text = candidate?.content?.parts
     ?.map((p) => p.text)
     .filter(Boolean)
     .join('')
 
-  if (!text) throw new Error('Gemini returned an empty response.')
+  // A candidate with no text at all. It happens occasionally and the cause is
+  // worth recording rather than swallowing: MAX_TOKENS means the answer was cut
+  // off, SAFETY or RECITATION mean it was withheld, STOP with no text is the
+  // model simply having produced nothing. Whatever the reason, it is worth one
+  // more try, so this is treated as retryable rather than fatal.
+  if (!text) {
+    const why = candidate?.finishReason || 'no candidate'
+    const err = new Error(`Gemini sent nothing back (${why}).`)
+    err.status = 502
+    err.emptyResponse = true
+    err.retryable = true
+    err.model = model
+    console.warn(
+      `[palat] empty response from ${model}, finishReason=${why}` +
+        (allowThinking ? ' (thinking was allowed)' : ' (thinking was off)')
+    )
+    throw err
+  }
 
   try {
     return JSON.parse(text)
@@ -202,6 +231,7 @@ export async function generateJson({ systemInstruction, contents, responseSchema
   let keyIndex = available(0) ? 0 : (nextKey(keys.length, 0) ?? 0)
   let modelIndex = 0
   let retriedBusy = false
+  let allowThinking = false
   let last
 
   // Enough attempts to walk every key and every model once, plus one retry.
@@ -216,6 +246,7 @@ export async function generateJson({ systemInstruction, contents, responseSchema
         contents,
         responseSchema,
         temperature,
+        allowThinking,
       })
     } catch (err) {
       last = err
@@ -231,14 +262,17 @@ export async function generateJson({ systemInstruction, contents, responseSchema
       }
 
       if (err.retryable) {
-        // These spikes are usually brief, so give the first model one more go
-        // before walking down the chain.
+        // An empty reply is worth one immediate retry with thinking turned back
+        // on; overload spikes are usually brief, so those get a short pause.
         if (!retriedBusy) {
           retriedBusy = true
-          await sleep(700)
+          if (err.emptyResponse) allowThinking = true
+          else await sleep(700)
           continue
         }
         modelIndex += 1
+        // A fresh model deserves the cheap path again.
+        allowThinking = false
         if (modelIndex >= models.length) break
         continue
       }
@@ -266,9 +300,13 @@ export async function generateJson({ systemInstruction, contents, responseSchema
           'daily limit that resets on its own. Demo mode (add ?demo=1 to the address) ' +
           'still works, and a billing-enabled key lifts the cap. You can also add a ' +
           'second key as GEMINI_API_KEY_2 in .env and Palat will switch to it.'
+  } else if (last?.emptyResponse) {
+    message =
+      'Gemini kept sending nothing back for this photo, on every model Palat tried. ' +
+      'Retake it a little closer and straighter and scan again.'
   } else if (last?.retryable) {
     message =
-      'Gemini is busy right now — every model Palat tried was overloaded. Give it a few ' +
+      'Gemini is busy right now, every model Palat tried was overloaded. Give it a few ' +
       'seconds and scan again.'
   } else {
     message = `Gemini (${last?.model || modelName()}) said: ${last?.message || 'unknown error'}`
