@@ -2939,3 +2939,224 @@ h3 {
 @media (min-width: 900px) {
   .moresheet-scrim { display: none; }
 }
+
+
+/* ============ the wall of claims ============
+   One row per claim on the front, worst first, with the ones that hold up still
+   on the list. Colour alone never carries it — every row has a glyph and a word
+   ("Misleading", "Technically true", "Holds up"), because the middle verdict is
+   the interesting one and it has no obvious colour.
+   ============================================================ */
+
+.claims {
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.claims-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.claims-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.claims-sub {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+
+.claims-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.claimrow {
+  display: flex;
+  gap: 11px;
+  padding: 12px 13px;
+  border-radius: 13px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.claimrow--no {
+  background: rgba(215, 38, 61, 0.12);
+  border-color: rgba(215, 38, 61, 0.35);
+}
+.claimrow--maybe {
+  background: rgba(242, 183, 5, 0.1);
+  border-color: rgba(242, 183, 5, 0.32);
+}
+.claimrow--yes {
+  background: rgba(30, 158, 90, 0.09);
+  border-color: rgba(30, 158, 90, 0.28);
+}
+
+.claimrow-glyph {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.92);
+  margin-top: 1px;
+}
+
+.claimrow--no .claimrow-glyph { color: #b01a2e; }
+.claimrow--maybe .claimrow-glyph { color: #8a6600; }
+.claimrow--yes .claimrow-glyph { color: #128049; }
+
+.claimrow-body { min-width: 0; }
+
+.claimrow-claim {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 9px;
+  margin: 0 0 3px;
+}
+
+.claimrow-quote {
+  font-size: 15.5px;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.claimrow-word {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.claimrow-reality {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.88;
+}
+
+.claims-foot {
+  margin: 11px 0 0;
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+
+.claims--compact { padding: 14px; }
+
+
+/* ============ the biryani test ============
+   Leads with the sentence, not the numbers. "Hazelnut 4%, maida 37.1%" is the
+   right fact delivered the wrong way — it hands the arithmetic to someone
+   standing in a shop. The honest name is the headline, the ratio is the proof,
+   and the percentages are receipts at the bottom for whoever wants to check.
+   ============================================================ */
+
+.whatitis {
+  border: 1px solid rgba(242, 183, 5, 0.3);
+  background: rgba(242, 183, 5, 0.08);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.whatitis-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.whatitis-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f2b705;
+}
+
+.whatitis-name {
+  margin: 0;
+  font-size: clamp(19px, 4.6vw, 23px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.whatitis-ratio {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin: 11px 0 0;
+}
+
+.whatitis-ratio strong {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #f2b705;
+}
+
+.whatitis-ratio span {
+  font-size: 14.5px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.whatitis-plainly {
+  margin: 11px 0 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  opacity: 0.9;
+}
+
+.whatitis-rows {
+  margin: 13px 0 0;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.whatitis-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.whatitis-row dt {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+.whatitis-row dd {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: right;
+}

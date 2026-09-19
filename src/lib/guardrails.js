@@ -117,40 +117,222 @@ const wants = (person, ...words) =>
   (person.goals || []).some((g) => words.some((w) => g.toLowerCase().includes(w)))
 
 /**
- * The claim gap: what the front of the pack says versus what the back contains.
- * This is the line that makes someone flip the next packet themselves.
+ * Every claim on the front, checked against the back — not just the first one
+ * that fails.
+ *
+ * A pack does not make one claim, it makes a wall of them. Sunfeast Farmlite
+ * Sugar Free Hazelnut & Oat carries five at once: sugar free, hazelnut, oat,
+ * source of protein, no trans fat, lactose free. Answering only on sugar leaves
+ * the buyer thinking the other five were checked and passed.
+ *
+ * Three verdicts, and the middle one is the important one:
+ *   holds        the claim is accurate and means what a buyer thinks it means.
+ *   technically  legally true and factually defensible, but it creates an
+ *                impression the ingredient list does not support. "Hazelnut &
+ *                Oat" on 4% hazelnut lives here.
+ *   misleading   the claim points the opposite way to the back of the pack for
+ *                the person likely to rely on it.
+ *
+ * None of these say "false". These claims are almost always legal — that is
+ * precisely the problem, and accusing a brand of lying would be both wrong and
+ * easy to dismiss. The gap between legal and honest is the whole point.
+ *
+ * Claims that hold up are reported as holding up. A read that can only find
+ * fault is not a read, it is a prejudice.
  */
-export function findClaimGap(frontClaims = [], findings = []) {
-  const claims = frontClaims.map((c) => String(c).toLowerCase())
-  const claimed = (...words) => claims.some((c) => words.some((w) => c.includes(w)))
 
+/** "Hazelnut (4%)" / "Oats 14%" / "Contains 22 % almond" -> 4, 14, 22 */
+function declaredPercent(ingredient) {
+  const m = String(ingredient).match(/(\d+(?:\.\d+)?)\s*%/)
+  return m ? parseFloat(m[1]) : null
+}
+
+/**
+ * Ingredients a pack is likely to be NAMED after. When a product puts one of
+ * these in its name or on its front, Indian labelling requires the percentage
+ * to be declared — so the number is right there to be quoted back.
+ */
+const HERO_INGREDIENTS = [
+  'hazelnut', 'almond', 'cashew', 'pistachio', 'walnut', 'peanut', 'badam',
+  'oat', 'oats', 'ragi', 'bajra', 'jowar', 'quinoa', 'millet',
+  'fruit', 'mango', 'orange', 'apple', 'strawberry', 'blueberry', 'coconut',
+  'chocolate', 'cocoa', 'milk', 'butter', 'ghee', 'honey', 'jaggery',
+  'paneer', 'cheese', 'tomato', 'spinach', 'carrot',
+]
+
+// Below this, the thing on the front of the box is a flavour, not an ingredient.
+const TOKEN_THRESHOLD = 10
+
+/**
+ * The biryani test.
+ *
+ * A dish named after an ingredient should be mostly that ingredient. Chicken
+ * biryani with more potato than chicken is potato biryani — everyone understands
+ * that instantly, and nobody needs a nutrition table to be convinced of it.
+ * Packaged food does the same trick with a straight face: "Hazelnut & Oat
+ * Cookies" where hazelnut is 4% and refined wheat flour is 37% is a maida
+ * biscuit with a nut waved at it.
+ *
+ * Quoting the two percentages is not enough, because it leaves the arithmetic to
+ * a person standing in a shop. This works out the ratio and hands back the
+ * pieces for a plain sentence: what it is called, what it actually is, and how
+ * many times more of the filler there is than the thing on the front.
+ *
+ * Returns null when the name is honest — when the hero ingredient leads, or when
+ * the percentages needed to prove otherwise are not printed. A pack that is what
+ * it says it is must come back clean, or the finding means nothing anywhere.
+ */
+
+/** "Refined Wheat Flour (Maida) (37.1%)" -> "Refined Wheat Flour (Maida)" */
+function cleanIngredient(line) {
+  return String(line)
+    .replace(/\s*\(?\s*\d+(\.\d+)?\s*%\s*\)?/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/[,\s]+$/, '')
+    .trim()
+}
+
+export function findNameGap(label = {}) {
+  const name = String(label.productName || '').toLowerCase()
+  const ingredients = (label.ingredients || []).map(String).filter(Boolean)
+  if (!name || ingredients.length < 2) return null
+
+  // The hero: an ingredient the product is named after. When a name promises
+  // several ("Hazelnut & Oat"), the smallest one is the honest headline.
+  let hero = null
+  for (const term of HERO_INGREDIENTS) {
+    if (!findTerm(name, term)) continue
+    const line = ingredients.find((i) => findTerm(i, term))
+    if (!line) continue
+    const pct = declaredPercent(line)
+    if (pct == null) continue
+    if (!hero || pct < hero.pct) hero = { term, pct }
+  }
+  if (!hero) return null
+
+  // Indian labels run in descending order of weight, so the first line is what
+  // the product mostly is — whatever the front of the box would rather discuss.
+  const dominantLine = ingredients[0]
+  const dominant = cleanIngredient(dominantLine)
+  const dominantPct = declaredPercent(dominantLine)
+  if (findTerm(dominantLine, hero.term)) return null // the name is honest
+
+  // Without the leading ingredient's percentage the ratio would be invented, and
+  // position alone is still worth saying.
+  const times =
+    dominantPct != null && hero.pct > 0 ? Math.round(dominantPct / hero.pct) : null
+
+  return {
+    hero: capitalise(hero.term),
+    heroPercent: hero.pct,
+    dominant,
+    dominantPercent: dominantPct,
+    times: times && times >= 2 ? times : null,
+  }
+}
+
+export function findClaimGaps(frontClaims = [], findings = [], label = {}) {
+  const out = []
+  const seen = new Set()
+
+  const add = (claim, verdict, reality) => {
+    if (!claim || !reality) return
+    const key = String(claim).toLowerCase().trim()
+    if (seen.has(key)) return
+    seen.add(key)
+    out.push({ claim, verdict, reality, fromRules: true })
+  }
+
+  const list = (items) => items.map((f) => f.term).join(', ')
   const sugary = findings.filter(
     (f) => f.category === 'hidden-sugar' || f.category === 'sugar-alcohol'
   )
   const refined = findings.filter((f) => f.category === 'refined-carb')
   const fats = findings.filter((f) => f.category === 'bad-fat')
 
-  const list = (items) => items.map((f) => f.term).join(', ')
+  const ingredients = (label.ingredients || []).map((i) => String(i))
+  const nutrition = label.nutritionPer100g || {}
 
-  if (claimed('sugar free', 'sugar-free', 'no sugar', 'no added sugar') && sugary.length) {
-    return {
-      claim: frontClaims.find((c) => /sugar/i.test(c)),
-      truth: 'Contains ' + list(sugary) + '.',
+  for (const raw of frontClaims) {
+    const claim = String(raw || '').trim()
+    if (!claim) continue
+    const c = claim.toLowerCase()
+    const says = (...words) => words.some((w) => c.includes(w))
+
+    // "Sugar free" sitting on maltitol, or "no added sugar" on fruit concentrate.
+    if (says('sugar free', 'sugar-free', 'no sugar', 'no added sugar', 'zero sugar')) {
+      if (sugary.length) {
+        add(claim, 'misleading', 'Contains ' + list(sugary) + '.')
+        continue
+      }
+      add(claim, 'holds', 'No sugar or sugar alcohol found in the ingredient list.')
+      continue
+    }
+
+    // Grain claims on a refined-flour base.
+    if (says('multigrain', 'whole grain', 'wholegrain', 'whole wheat', 'atta', 'high fibre', 'high fiber')) {
+      if (refined.length) {
+        add(claim, 'misleading', 'The flours listed include ' + list(refined) + '.')
+        continue
+      }
+    }
+
+    // No trans fat — one of the few claims a label can settle outright.
+    if (says('trans fat', 'trans-fat')) {
+      const trans = numberFrom(nutrition.transFatG)
+      if (trans === 0) {
+        add(claim, 'holds', 'The label confirms 0 g trans fat per 100 g.')
+        continue
+      }
+      if (trans > 0) {
+        add(claim, 'misleading', `The label lists ${nutrition.transFatG} g trans fat per 100 g.`)
+        continue
+      }
+    }
+
+    // "Source of protein" on a number that does not earn it.
+    if (says('protein')) {
+      const protein = numberFrom(nutrition.proteinG)
+      if (protein != null && protein < 6) {
+        add(
+          claim,
+          'technically',
+          `${nutrition.proteinG} g protein per 100 g — less than a roti, and you would eat far less than 100 g.`
+        )
+        continue
+      }
+    }
+
+    // The one this was rebuilt for: a pack named after an ingredient it barely
+    // contains. The percentage is on the label by law, so quote it.
+    for (const hero of HERO_INGREDIENTS) {
+      if (!says(hero)) continue
+      const line = ingredients.find((i) => findTerm(i, hero))
+      if (!line) {
+        add(claim, 'technically', `No ${hero} appears in the ingredient list at all.`)
+        break
+      }
+      const pct = declaredPercent(line)
+      if (pct != null && pct < TOKEN_THRESHOLD) {
+        const base = refined.length ? ` ${capitalise(refined[0].term)} is the bulk of it.` : ''
+        add(claim, 'technically', `${capitalise(hero)} is only ${pct}% of this.${base}`)
+      }
+      break
+    }
+
+    // "Healthy", "light", "diet", "natural" over sugar or bad fat.
+    if (says('healthy', 'light', 'diet', 'fit', 'natural', 'guilt free', 'guilt-free')) {
+      if (fats.length || sugary.length) {
+        add(claim, 'misleading', 'Contains ' + list([...sugary, ...fats]) + '.')
+      }
     }
   }
-  if (claimed('multigrain', 'whole grain', 'wholegrain', 'atta') && refined.length) {
-    return {
-      claim: frontClaims.find((c) => /grain|atta/i.test(c)),
-      truth: 'The flours listed include ' + list(refined) + '.',
-    }
-  }
-  if (claimed('healthy', 'light', 'diet', 'fit', 'natural') && (fats.length || sugary.length)) {
-    return {
-      claim: frontClaims.find((c) => /healthy|light|diet|fit|natural/i.test(c)),
-      truth: 'Contains ' + list([...sugary, ...fats]) + '.',
-    }
-  }
-  return null
+
+  return out
+}
+
+function capitalise(w) {
+  return w.charAt(0).toUpperCase() + w.slice(1)
 }
 
 const RANK = { YES: 0, SOMETIMES: 1, NO: 2 }

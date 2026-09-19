@@ -6,7 +6,8 @@ import { checkClaims, isDemoMode } from '../lib/api.js'
 import PersonTabs from '../components/PersonTabs.jsx'
 import VerdictCard from '../components/VerdictCard.jsx'
 import LabelSheet from '../components/LabelSheet.jsx'
-import ListenButton from '../components/ListenButton.jsx'
+import ClaimList from '../components/ClaimList.jsx'
+import WhatItIs from '../components/WhatItIs.jsx'
 
 /**
  * Front against back, for ONE product.
@@ -69,7 +70,8 @@ export default function ClaimCheck() {
     setError('')
   }
 
-  const gap = result?.claimGap
+  const checks = result?.claimChecks || []
+  const nameCheck = result?.nameCheck
   const label = result?.label
   const activeVerdict = result?.verdicts.find((v) => v.personId === activeId)
   const activePerson = family.find((p) => p.id === activeId)
@@ -168,43 +170,24 @@ export default function ClaimCheck() {
             </figure>
           </div>
 
-          {gap ? (
-            <section className="claim claim--caught">
-              <header className="claim-head">
-                <span className="claim-badge">Claim does not hold up</span>
-                <ListenButton
-                  text={`The front says ${gap.claim}. The back says ${gap.truth}`}
-                  label="Listen to the claim check"
-                />
-              </header>
-              <p className="claim-row">
-                <span className="claim-side">Front says</span>
-                <strong className="claim-value claim-value--front">{gap.claim}</strong>
-              </p>
-              <p className="claim-row">
-                <span className="claim-side">Back says</span>
-                <strong className="claim-value claim-value--back">{gap.truth}</strong>
-              </p>
-              {gap.fromModel ? null : (
-                <p className="claim-note">
-                  Caught by Palat&rsquo;s own ingredient rules — a claim word on the
-                  front and a matching ingredient on the back.
-                </p>
-              )}
-            </section>
+          <WhatItIs check={nameCheck} />
+
+          {checks.length ? (
+            <ClaimList checks={checks} />
           ) : (
             <section className="claim claim--clean">
               <header className="claim-head">
-                <span className="claim-badge">Nothing misleading found</span>
+                <span className="claim-badge">No claims to check</span>
               </header>
               <p className="claim-row">
                 <strong className="claim-value">
-                  The front does not claim anything the ingredient list contradicts.
+                  Nothing on the front of this pack makes a claim the ingredient
+                  list can be held against.
                 </strong>
               </p>
               <p className="claim-note">
-                That is a real result, not a failure to look. Read the portion below
-                anyway — an honest label can still be wrong for one person.
+                Read the portion below anyway — a pack with nothing to prove can
+                still be wrong for one person.
               </p>
             </section>
           )}

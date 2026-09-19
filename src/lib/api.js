@@ -1,4 +1,4 @@
-import { scanIngredients, findClaimGap, guardVerdict } from './guardrails.js'
+import { scanIngredients, findClaimGaps, findNameGap, guardVerdict } from './guardrails.js'
 import {
   DEMO_LABEL,
   DEMO_CLAIM_LABEL,
@@ -67,7 +67,7 @@ export async function analyzeLabel({ base64, mimeType, people, mode = 'label' })
 
   const label = payload.label || {}
   const findings = scanIngredients(label.ingredients)
-  const claimGap = resolveClaimGap(label, findings)
+  const claimChecks = resolveClaimChecks(label, findings)
 
   const verdicts = people.map((person) => {
     const raw = (payload.verdicts || []).find((v) => v.personId === person.id) || {
@@ -91,7 +91,9 @@ export async function analyzeLabel({ base64, mimeType, people, mode = 'label' })
   return {
     label,
     findings,
-    claimGap,
+    claimChecks,
+    nameCheck: resolveNameCheck(label),
+    claimGap: worstClaim(claimChecks),
     verdicts,
     dishes: payload.dishes || [],
     seen: payload.seen || null,
@@ -100,26 +102,103 @@ export async function analyzeLabel({ base64, mimeType, people, mode = 'label' })
 }
 
 /**
- * Two ways to catch a misleading front, in order of how much they can be trusted.
+ * Two ways to catch a misleading front, merged rather than chosen between.
  *
- * The client-side rules are deterministic: they only fire when a claim word and a
- * matching ingredient are both actually present, so they cannot invent a gap. But
- * they only know the handful of patterns written into them, and they depend on the
- * claim happening to be readable in the photo.
+ * Gemini can see the whole front and enumerate claims no rule anticipated —
+ * "lactose free", "source of protein", a product name that is itself a claim.
+ * The rules in guardrails.js know fewer patterns but cannot be talked out of the
+ * ones they know, and cannot soften. So Gemini supplies the breadth and the
+ * rules are the floor underneath it: anything they prove and Gemini missed gets
+ * appended rather than lost.
  *
- * When the front of the pack has been photographed deliberately (the claim-check
- * page), Gemini can see the claim and the ingredient list side by side and catches
- * the ones no rule anticipated — "high protein" on six grams, "made with real
- * fruit" on one percent. So prefer its finding when it made one, and fall back to
- * the rules otherwise.
+ * Sorted worst-first, because the failures are what someone in an aisle has
+ * three seconds for — but the claims that hold up stay on the list underneath,
+ * so the read is visibly a check and not a hunt.
  */
-function resolveClaimGap(label = {}, findings = []) {
+const CLAIM_RANK = { misleading: 0, technically: 1, holds: 2 }
+
+const normaliseClaim = (c) =>
+  String(c || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+/** "Sugar free" and "SUGAR FREE Cookies" are the same claim twice. */
+function sameClaim(a, b) {
+  const x = normaliseClaim(a)
+  const y = normaliseClaim(b)
+  if (!x || !y) return false
+  return x === y || x.includes(y) || y.includes(x)
+}
+
+export function resolveClaimChecks(label = {}, findings = []) {
   const said = (v) => v && v !== '—' && String(v).trim()
-  const model = label.claimCheck
-  if (model && said(model.claim) && said(model.reality)) {
-    return { claim: model.claim, truth: model.reality, fromModel: true }
+
+  const fromModel = (label.claimChecks || [])
+    .filter((c) => c && said(c.claim) && said(c.reality))
+    .map((c) => ({
+      claim: String(c.claim).trim(),
+      verdict: CLAIM_RANK[c.verdict] != null ? c.verdict : 'technically',
+      reality: String(c.reality).trim(),
+      fromRules: false,
+    }))
+
+  const merged = [...fromModel]
+  for (const rule of findClaimGaps(label.frontClaims, findings, label)) {
+    if (merged.some((m) => sameClaim(m.claim, rule.claim))) continue
+    merged.push(rule)
   }
-  return findClaimGap(label.frontClaims, findings)
+
+  return merged.sort((a, b) => CLAIM_RANK[a.verdict] - CLAIM_RANK[b.verdict])
+}
+
+/**
+ * What the pack actually is, versus what it is called.
+ *
+ * The ratio and the percentages come from the label itself — arithmetic, not
+ * judgement, so they cannot drift. The sentence around them comes from Gemini,
+ * which can phrase it for a person who does not read labels. If the model says
+ * nothing but the numbers prove a gap, the numbers still get their say.
+ */
+export function resolveNameCheck(label = {}) {
+  const said = (v) => v && v !== '—' && String(v).trim()
+  const measured = findNameGap(label)
+  const model = label.nameCheck || {}
+
+  if (!measured && !said(model.honestName)) return null
+
+  const times = measured?.times
+  const fallback = measured
+    ? `${measured.hero} is ${measured.heroPercent}% of this. ` +
+      (times
+        ? `There is about ${times} times more ${measured.dominant.toLowerCase()} in it than ${measured.hero.toLowerCase()}.`
+        : `${measured.dominant} is the main ingredient.`)
+    : ''
+
+  return {
+    honestName: said(model.honestName) || null,
+    namedAfter:
+      said(model.namedAfter) ||
+      (measured ? `${measured.hero} (${measured.heroPercent}%)` : null),
+    actuallyMostly:
+      said(model.actuallyMostly) ||
+      (measured
+        ? measured.dominantPercent != null
+          ? `${measured.dominant} (${measured.dominantPercent}%)`
+          : measured.dominant
+        : null),
+    plainly: said(model.plainly) || fallback || null,
+    times: times || null,
+    // The ratio is measured against these two specifically, so the sentence has
+    // to name them and not the prose fields, which may list several ingredients.
+    heroTerm: measured?.hero || null,
+    dominantTerm: measured?.dominant || null,
+  }
+}
+
+/** The single worst claim, for places that only have room for one line. */
+export function worstClaim(checks = []) {
+  return checks.find((c) => c.verdict !== 'holds') || null
 }
 
 export const MAX_PANELS = 4
@@ -175,7 +254,8 @@ export async function checkClaims({ front, back, extra = [], people }) {
   return {
     label,
     findings,
-    claimGap: resolveClaimGap(label, findings),
+    claimChecks: resolveClaimChecks(label, findings),
+    nameCheck: resolveNameCheck(label),
     verdicts,
     dishes: [],
     seen: null,
@@ -218,7 +298,8 @@ export async function analyzeBatch({ images, people }) {
       photo: images[i]?.dataUrl || null,
       label,
       findings,
-      claimGap: findClaimGap(label.frontClaims, findings),
+      claimChecks: resolveClaimChecks(label, findings),
+      nameCheck: resolveNameCheck(label),
       mode: 'label',
       dishes: [],
       verdicts: people.map((person) => {

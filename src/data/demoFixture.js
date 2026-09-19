@@ -44,51 +44,94 @@ export const DEMO_LABEL = {
 }
 
 /**
- * The claim-check demo, taken from a real Unibic oats-and-coconut cookie pack.
+ * The claim-check demo: Sunfeast Farmlite Sugar Free Hazelnut & Oat, read off
+ * the real pack.
  *
- * It is the clearest example of the gap Palat exists to show: the front is a
- * photograph of rolled oats with the words "Creative Visualization" printed
- * beside it, while the back lists refined wheat flour first, palm oil second, and
- * 33.6 g of total sugar per 100 g. Nothing here is illegal. Every word on the
- * front is defensible. It is still not what the buyer thinks they are holding.
+ * It is the best example of the thing this page exists for, because it does not
+ * make one claim — it makes five, and they are all legal. Sugar free (on
+ * maltitol). Hazelnut, in the product name, at 4%. Source of protein. No trans
+ * fat, which is true. Lactose free, which is also true. Answering only on sugar
+ * would leave a family assuming the other four had been checked and passed.
+ *
+ * Values marked "—" are ones not legible in the photographs this was built from.
+ * Inventing them would break the one rule the prompt never bends.
  */
 export const DEMO_CLAIM_LABEL = {
-  productName: 'Oats & Coconut Cookies',
-  brand: 'Unibic Foods India · 60 g pack',
+  productName: 'Farmlite Sugar Free Hazelnut & Oat Cookies',
+  brand: 'Sunfeast · 100 g pack',
   readable: true,
   isEstimate: false,
-  frontClaims: ['OATS', 'Creative Visualization'],
-  ingredients: [
-    'Refined Wheat Flour (Maida)',
-    'Sugar',
-    'Edible Vegetable Oil (Palm)',
-    'Rolled Oats (14%)',
-    'Coconut',
-    'Invert Syrup',
-    'Honey (1%)',
-    'Leavening Agents (INS 500(ii), INS 503(ii))',
-    'Salt',
+  frontClaims: [
+    'Sugar free',
+    'Hazelnut & Oat Cookies',
+    'Source of Protein',
+    'No Trans Fat',
+    'Lactose Free',
   ],
-  servingSize: '30 g',
-  servingsPerPack: 'Approx. 2 servings · 30 g each',
-  perServeKcal: '143',
+  ingredients: [
+    'Refined Wheat Flour (Maida) (37.1%)',
+    'Maltitol',
+    'Edible Vegetable Oil (Palm)',
+    'Oats (12.5%)',
+    'Hazelnut (4%)',
+    'Raising Agents (INS 503(ii), INS 500(ii))',
+    'Emulsifiers (INS 322, INS 471)',
+    'Salt',
+    'Added Flavours (Natural and Nature Identical)',
+  ],
+  servingSize: '—',
+  servingsPerPack: 'Approx. 8 servings',
+  perServeKcal: '—',
   nutritionPer100g: {
-    energyKcal: '476',
-    carbsG: '70',
-    totalSugarG: '33.6',
-    addedSugarG: '31.6',
-    proteinG: '6.2',
-    totalFatG: '19',
-    satFatG: '10.6',
+    energyKcal: '—',
+    carbsG: '—',
+    totalSugarG: '—',
+    addedSugarG: '0',
+    proteinG: '7.2',
+    totalFatG: '—',
+    satFatG: '—',
     transFatG: '0',
     fibreG: '—',
-    sodiumMg: '285',
+    sodiumMg: '—',
   },
-  claimCheck: {
-    claim: 'Oats on the front, with rolled oats pictured',
-    reality:
-      'Refined wheat flour is the first ingredient and palm oil the third. Oats are 14 per cent, and honey is 1 per cent.',
+  nameCheck: {
+    honestName: 'A maida biscuit with a little hazelnut',
+    namedAfter: 'Hazelnut (4%) and oats (12.5%)',
+    actuallyMostly: 'Refined wheat flour, maida (37.1%)',
+    plainly:
+      'Chicken biryani should be mostly chicken. If there is more potato than chicken in it, it is potato biryani. This box is named after hazelnut and oats, but there is about nine times more refined flour in it than hazelnut.',
   },
+  claimChecks: [
+    {
+      claim: 'Sugar free',
+      verdict: 'misleading',
+      reality:
+        'Maltitol is the second ingredient. It is a sugar alcohol, so the pack can legally say sugar free, and it still raises blood glucose.',
+    },
+    {
+      claim: 'Hazelnut & Oat Cookies',
+      verdict: 'technically',
+      reality:
+        'Hazelnut is 4% and oats are 12.5%. Refined wheat flour is 37.1% — the biscuit is named after the smallest thing in it.',
+    },
+    {
+      claim: 'Source of Protein',
+      verdict: 'technically',
+      reality:
+        '7.2 grams per 100 grams, and nobody eats 100 grams. Two cookies carry about a gram, which is less than a spoon of dal.',
+    },
+    {
+      claim: 'No Trans Fat',
+      verdict: 'holds',
+      reality: 'The label confirms 0 grams of trans fat. This one is true.',
+    },
+    {
+      claim: 'Lactose Free',
+      verdict: 'holds',
+      reality:
+        'No milk solids in the ingredient list. True, and genuinely useful if lactose is your problem.',
+    },
+  ],
   unreadableNote: '',
 }
 
@@ -144,36 +187,36 @@ export const DEMO_CLAIM_VERDICTS = [
     verdict: 'NO',
     headline: 'Not for Dadaji',
     portion: '0',
-    portionUnit: 'biscuits today',
-    packSays: 'Pack says 2 servings of 30 grams each',
+    portionUnit: 'cookies today',
+    packSays: 'Pack says 8 servings — still too risky for him',
     reason:
-      'The oats on the front are 14 per cent. Refined wheat flour is the first ingredient and palm oil the third, and there are 33.6 grams of total sugar in every 100 grams. For his diabetes that is a sugar biscuit with an oat photograph on it.',
+      'This is marketed as sugar free but the second ingredient is maltitol. Maltitol is a sugar alcohol that will raise his blood glucose. It also contains thirty seven per cent refined wheat flour, which behaves just like sugar in his body.',
     better: 'Roasted chana, 30 g',
-    keyNumbers: ['Maida · 1st ingredient', 'Total sugars 33.6 g / 100 g', 'Palm oil · 3rd'],
+    keyNumbers: ['Maltitol is 2nd ingredient', '37.1% Refined Wheat Flour', 'Hazelnut only 4%'],
   },
   {
     personId: 'mummy',
     verdict: 'SOMETIMES',
     headline: 'Two with tea, Mummy',
     portion: '2',
-    portionUnit: 'biscuits a week',
-    packSays: 'Pack says 2 servings of 30 grams each — that is the whole pack',
+    portionUnit: 'cookies a week',
+    packSays: 'Pack says 8 servings',
     reason:
-      'Sodium is 285 milligrams per 100 grams, which is moderate rather than a problem for her blood pressure. The catch is the sugar and the palm oil, and that the whole pack is only two servings, so finishing it is far easier than it looks.',
+      'Nothing here works against her blood pressure directly. The catch is that she is paying for a health biscuit and getting maida and palm oil, with four per cent hazelnut on top. Two with tea is a biscuit, not a health food.',
     better: 'Plain khakhra',
-    keyNumbers: ['Sodium 285 mg / 100 g', '476 kcal / 100 g', 'Saturated fat 10.6 g / 100 g'],
+    keyNumbers: ['Palm oil is 3rd ingredient', 'Hazelnut only 4%', 'Protein 7.2 g / 100 g'],
   },
   {
     personId: 'chotu',
     verdict: 'SOMETIMES',
     headline: 'Two after school, Chotu',
     portion: '2',
-    portionUnit: 'biscuits after school',
-    packSays: 'Pack says 2 servings of 30 grams each',
+    portionUnit: 'cookies after school',
+    packSays: 'Pack says 8 servings',
     reason:
-      'Nothing here is harmful for a six-year-old, it is simply a sweet biscuit rather than the oat snack the front suggests. Two after school is a treat. The whole pack is most of a meal in sugar.',
+      'Maltitol in any quantity gives children loose motions, so the sugar free version is actually the worse one for him. Two is fine. A handful is a stomach ache, and an ordinary biscuit would treat him better.',
     better: 'Banana',
-    keyNumbers: ['Added sugars 31.6 g / 100 g', 'Oats only 14%', 'Honey 1%'],
+    keyNumbers: ['Maltitol is 2nd ingredient', 'Oats 12.5%', 'Hazelnut only 4%'],
   },
 ]
 

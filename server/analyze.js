@@ -40,15 +40,38 @@ export const labelSchema = {
           ),
           required: nutritionProps,
         },
-        // Only meaningful when the front of the pack was actually photographed.
-        // Both "—" when nothing on the front is contradicted by the back.
-        claimCheck: {
+        // The biryani test: a product named after an ingredient should be
+        // mostly that ingredient. Percentages alone leave the arithmetic to a
+        // person in a shop; this is the plain sentence they actually need.
+        nameCheck: {
           type: 'OBJECT',
           properties: {
-            claim: { type: 'STRING' },
-            reality: { type: 'STRING' },
+            honestName: { type: 'STRING' },
+            namedAfter: { type: 'STRING' },
+            actuallyMostly: { type: 'STRING' },
+            plainly: { type: 'STRING' },
           },
-          required: ['claim', 'reality'],
+          required: ['honestName', 'namedAfter', 'actuallyMostly', 'plainly'],
+        },
+        // EVERY claim on the front, each judged separately. A pack does not make
+        // one claim, it makes a wall of them, and answering only on the loudest
+        // leaves the buyer assuming the rest were checked and passed.
+        claimChecks: {
+          type: 'ARRAY',
+          items: {
+            type: 'OBJECT',
+            properties: {
+              claim: { type: 'STRING' },
+              // Never "false": these claims are almost always legal, which is
+              // the actual problem. "technically" is the interesting verdict.
+              verdict: {
+                type: 'STRING',
+                enum: ['holds', 'technically', 'misleading'],
+              },
+              reality: { type: 'STRING' },
+            },
+            required: ['claim', 'verdict', 'reality'],
+          },
         },
         unreadableNote: { type: 'STRING' },
       },
@@ -63,7 +86,8 @@ export const labelSchema = {
         'servingsPerPack',
         'perServeKcal',
         'nutritionPer100g',
-        'claimCheck',
+        'nameCheck',
+        'claimChecks',
         'unreadableNote',
       ],
 }

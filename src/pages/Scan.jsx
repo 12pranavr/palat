@@ -11,6 +11,8 @@ import DishList from '../components/DishList.jsx'
 import Compare from '../components/Compare.jsx'
 import BatchResults from '../components/BatchResults.jsx'
 import SeenCard from '../components/SeenCard.jsx'
+import ClaimList from '../components/ClaimList.jsx'
+import WhatItIs from '../components/WhatItIs.jsx'
 
 export default function Scan() {
   const {
@@ -311,11 +313,10 @@ export default function Scan() {
             </ul>
           ) : null}
 
-          {result.claimGap ? (
-            <div className="gap">
-              <p className="gap-claim">Front says “{result.claimGap.claim}”</p>
-              <p className="gap-truth">Back says {result.claimGap.truth}</p>
-            </div>
+          <WhatItIs check={result.nameCheck} />
+
+          {result.claimChecks?.length ? (
+            <ClaimList checks={result.claimChecks} compact />
           ) : null}
 
           {result.mode === 'plate' ? <SeenCard seen={result.seen} /> : null}

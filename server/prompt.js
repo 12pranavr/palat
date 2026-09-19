@@ -152,14 +152,7 @@ Never return two products and never let this be treated as two packets.
 ${named}
 
 Because you can see the front and the back together, you can do the thing Palat
-exists for: quote what the front CLAIMS and then contradict it with what the back
-actually lists. Put the exact claim as printed in claimCheck.claim and the
-contradiction in claimCheck.reality, e.g.
-  claim: "MULTIGRAIN"
-  reality: "Refined wheat flour is the first ingredient; oats are 1%."
-If the front makes no claim that the back contradicts, set both to "—". Do not
-manufacture a gap that is not there — a pack that is honest about itself should
-come back clean.
+exists for: check EVERY claim on that front against the ingredient list.
 
 `
 }
@@ -221,9 +214,76 @@ HARD LIMITS on "seen", never break them:
       : `This is an Indian food packet. Read the ingredient list and the nutrition
 table exactly as printed, even if the print is tiny, crumpled, at an angle, in bad
 shop light, or mixed Hindi and English. Also read whatever marketing claim you can
-see on the pack ("sugar-free", "no added sugar", "multigrain", "high protein",
-"made with real fruit") and record it in frontClaims — the gap between that claim
-and the ingredient list is the single most useful thing you can tell this family.
+see on the pack and record EVERY one of them in frontClaims — "sugar free", "no
+added sugar", "multigrain", "high protein", "source of protein", "no trans fat",
+"lactose free", "zero cholesterol", "made with real fruit", "baked not fried",
+"with hazelnut", and the product name itself when the name makes a claim. The gap
+between those claims and the ingredient list is the single most useful thing you
+can tell this family.
+
+WHAT IT ACTUALLY IS — fill nameCheck. This is the biryani test, and it is the
+easiest idea in this whole app to explain to someone who has never read a label.
+
+Chicken biryani should be mostly chicken. If there is more potato than chicken in
+it, it is potato biryani with a few pieces of chicken — nobody needs a nutrition
+table to agree with that, and nobody argues with it. Packaged food does the same
+thing with a straight face. "Hazelnut & Oat Cookies" where hazelnut is 4% and
+refined wheat flour is 37% is a maida biscuit with a nut waved at it.
+
+When the product is named after an ingredient, or the front photographs one:
+- namedAfter: the ingredient the name promises, with its declared percentage.
+- actuallyMostly: the ingredient that is genuinely the bulk of it, with its
+  percentage. Indian labels are in descending order of weight, so this is usually
+  the first thing on the list.
+- honestName: what this product would be called if the name had to match the
+  recipe. Short, four or five words, no punctuation games. "A maida biscuit with
+  a little hazelnut." "A sugar syrup with some fruit in it." Say it as a plain
+  description, never as an accusation and never in quotation marks.
+- plainly: one or two sentences explaining the gap to someone who does not read
+  labels and does not want a lecture. Use an everyday comparison when it genuinely
+  makes it land — the biryani one, or a better one that fits this actual product.
+  Do not force a comparison where the plain fact is already obvious. Say how many
+  times more of the filler there is than the hero ingredient when the label gives
+  you both numbers, because a ratio lands where two percentages do not.
+
+If the name is honest — the hero ingredient really is the main one, as in roasted
+chana or plain atta — set all four fields to "—". A product that is what it says
+it is must come back clean, or this finding means nothing when it matters.
+
+EVERY CLAIM ON THE FRONT — fill claimChecks with one entry per claim, not just
+the worst one. A pack does not make one claim, it makes a wall of them. A single
+box of cookies can carry "Sugar free", "Hazelnut & Oat", "Source of Protein",
+"No Trans Fat" and "Lactose Free" all at once. Answering only on sugar leaves the
+family assuming the other four were checked and passed.
+
+List every claim printed or implied on the front, including the product name when
+the name itself is a claim ("Hazelnut & Oat Cookies" claims hazelnut and oats),
+and give each one a verdict:
+
+  "holds"       Accurate, and it means what a buyer thinks it means. Say so
+                plainly and briefly. A pack that is honest about something gets
+                credit for it.
+  "technically" True, defensible, and still leaving a false impression. This is
+                the most important verdict you give. A cookie named after
+                hazelnut that contains 4% hazelnut belongs here. So does "source
+                of protein" on a number nobody would call a protein food.
+  "misleading"  The claim points the opposite way to the back of the pack for the
+                person most likely to rely on it. "Sugar free" over maltitol is
+                this, because the person reading it is usually diabetic.
+
+NEVER return the verdict "false" and never say a brand is lying. These claims are
+almost always perfectly legal, which is exactly the problem, and an accusation is
+easy to dismiss. Show the gap between legal and honest and let it speak.
+
+NAMED INGREDIENTS — when the pack is named after something, or the front pictures
+it, find its declared percentage in the ingredient list and quote the number.
+Indian labels are required to declare it. "Hazelnut is 4%, refined wheat flour is
+37%" ends the argument in a way adjectives never do. If the named ingredient does
+not appear in the list at all, say that.
+
+Be fair. Report the claims that hold up as holding up. A read that can only find
+fault is not a read, it is a prejudice, and the family will stop believing the
+ones that matter.
 
 SERVINGS PER PACK — read this carefully, it is the number this whole screen is
 built on. Indian packs print it next to the nutrition table as "Number of Servings
