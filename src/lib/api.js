@@ -1,6 +1,8 @@
 import { scanIngredients, findClaimGap, guardVerdict } from './guardrails.js'
 import {
   DEMO_LABEL,
+  DEMO_CLAIM_LABEL,
+  DEMO_CLAIM_VERDICTS,
   DEMO_VERDICTS,
   DEMO_PLATE,
   DEMO_FAMILY,
@@ -65,7 +67,7 @@ export async function analyzeLabel({ base64, mimeType, people, mode = 'label' })
 
   const label = payload.label || {}
   const findings = scanIngredients(label.ingredients)
-  const claimGap = findClaimGap(label.frontClaims, findings)
+  const claimGap = resolveClaimGap(label, findings)
 
   const verdicts = people.map((person) => {
     const raw = (payload.verdicts || []).find((v) => v.personId === person.id) || {
@@ -73,9 +75,10 @@ export async function analyzeLabel({ base64, mimeType, people, mode = 'label' })
       verdict: 'SOMETIMES',
       headline: 'Could not read this one for ' + person.name,
       reason: 'The label did not come through clearly enough to be sure.',
-      portion: '—',
+      portion: '?',
+      portionUnit: 'not readable',
+      packSays: '—',
       better: '—',
-      hindi: '',
       keyNumbers: [],
     }
     // In plate mode the ingredient list is dish names, so the guardrails have
@@ -93,6 +96,91 @@ export async function analyzeLabel({ base64, mimeType, people, mode = 'label' })
     dishes: payload.dishes || [],
     seen: payload.seen || null,
     mode,
+  }
+}
+
+/**
+ * Two ways to catch a misleading front, in order of how much they can be trusted.
+ *
+ * The client-side rules are deterministic: they only fire when a claim word and a
+ * matching ingredient are both actually present, so they cannot invent a gap. But
+ * they only know the handful of patterns written into them, and they depend on the
+ * claim happening to be readable in the photo.
+ *
+ * When the front of the pack has been photographed deliberately (the claim-check
+ * page), Gemini can see the claim and the ingredient list side by side and catches
+ * the ones no rule anticipated — "high protein" on six grams, "made with real
+ * fruit" on one percent. So prefer its finding when it made one, and fall back to
+ * the rules otherwise.
+ */
+function resolveClaimGap(label = {}, findings = []) {
+  const said = (v) => v && v !== '—' && String(v).trim()
+  const model = label.claimCheck
+  if (model && said(model.claim) && said(model.reality)) {
+    return { claim: model.claim, truth: model.reality, fromModel: true }
+  }
+  return findClaimGap(label.frontClaims, findings)
+}
+
+export const MAX_PANELS = 4
+
+/**
+ * One product, photographed front and back, read as a single label.
+ *
+ * Deliberately not part of scanning: a scan is "read this packet for my family",
+ * this is "is this pack telling me the truth". Same endpoint, different question,
+ * and the answer people want back is the claim, not the verdict.
+ */
+export async function checkClaims({ front, back, extra = [], people }) {
+  const panels = [
+    front && { ...front, side: 'front' },
+    back && { ...back, side: 'back' },
+    ...extra.map((e) => ({ ...e, side: 'other' })),
+  ].filter(Boolean)
+
+  let payload
+  if (isDemoMode()) {
+    await new Promise((r) => setTimeout(r, 2000))
+    payload = { label: DEMO_CLAIM_LABEL, dishes: [], verdicts: DEMO_CLAIM_VERDICTS }
+  } else {
+    payload = await post('/api/analyze', {
+      images: panels.map((p) => ({
+        base64: p.base64,
+        mimeType: p.mimeType,
+        side: p.side,
+      })),
+      people,
+      mode: 'label',
+    })
+  }
+
+  const label = payload.label || {}
+  const findings = scanIngredients(label.ingredients)
+
+  const verdicts = people.map((person) => {
+    const raw = (payload.verdicts || []).find((v) => v.personId === person.id) || {
+      personId: person.id,
+      verdict: 'SOMETIMES',
+      headline: 'Could not read this one for ' + person.name,
+      reason: 'The label did not come through clearly enough to be sure.',
+      portion: '?',
+      portionUnit: 'not readable',
+      packSays: '—',
+      better: '—',
+      keyNumbers: [],
+    }
+    return guardVerdict(raw, person, findings, label.nutritionPer100g)
+  })
+
+  return {
+    label,
+    findings,
+    claimGap: resolveClaimGap(label, findings),
+    verdicts,
+    dishes: [],
+    seen: null,
+    mode: 'label',
+    panels: panels.map((p) => ({ side: p.side, dataUrl: p.dataUrl })),
   }
 }
 
@@ -139,9 +227,10 @@ export async function analyzeBatch({ images, people }) {
           verdict: 'SOMETIMES',
           headline: 'Could not read this one for ' + person.name,
           reason: 'That label did not come through clearly enough to be sure.',
-          portion: '—',
+          portion: '?',
+          portionUnit: 'not readable',
+          packSays: '—',
           better: '—',
-          hindi: '',
           keyNumbers: [],
         }
         return guardVerdict(raw, person, findings, label.nutritionPer100g)
@@ -161,7 +250,6 @@ export async function askAbout({ question, person, history, cart }) {
       answer:
         `Demo mode is on, so this is a canned reply rather than Gemini. ` +
         `In a real answer Palat would use ${person.name}'s profile and the packets you have scanned.`,
-      hindi: 'यह डेमो जवाब है।',
       kind: 'answered',
       basedOn: ['demo mode'],
     }

@@ -108,18 +108,65 @@ A goal counts even when there is no illness. Someone trying to lose weight gets 
 stricter answer on a calorie-dense packet than a growing child with no goal, and
 the reason should name the calories rather than imply a medical problem.
 
+Read each pack's printed serving count into servingsPerPack ("Approx. 2 servings ·
+30 g each"), exactly as printed, or "—" if it is genuinely absent.
+
+WRITE EVERYTHING IN ENGLISH, simple and spoken. No Hindi, no Devanagari.
+
 For every person on every packet return: verdict (NO / SOMETIMES / YES), headline
-under 8 words addressed to them by name, a one-sentence reason naming the actual
-offending ingredient or number from THAT label, portion (or "—"), better (one
-category-level swap, no brand names, or "—"), hindi (headline and reason in one
-natural spoken Hindi sentence, Devanagari), and up to 3 keyNumbers straight off
-that label.
+under 8 words addressed to them by name, portion (the number they can have,
+always filled, "0" for NO), portionUnit (what it counts and when, e.g. "biscuits
+today"), packSays (that pack's own serving line, or "—"), reason (two or three
+short spoken sentences naming the offending ingredient or number from THAT label
+and saying why it matters to that person), better (one category-level swap, no
+brand names, or "—"), and up to 3 keyNumbers straight off that label.
 
 Return only JSON matching the schema.`
 }
 
-export function buildUserPrompt(people, mode) {
+/**
+ * When more than one photo of the SAME packet is sent, the model has to be told
+ * loudly that these are panels of one product. Left to itself it tends to treat
+ * a second image as a second item and produce two readings.
+ */
+function describePanels(sides = []) {
+  if (sides.length < 2) return ''
+
+  const named = sides
+    .map((side, i) => {
+      const what =
+        side === 'front'
+          ? 'the FRONT of the pack (marketing claims, product name)'
+          : side === 'back'
+            ? 'the BACK of the pack (ingredient list, nutrition table)'
+            : 'another panel of the same pack'
+      return `  Photo ${i + 1}: ${what}.`
+    })
+    .join('\n')
+
+  return `There are ${sides.length} photographs attached and they are ALL THE SAME
+PACKET, photographed from different sides. They are NOT different products. Merge
+them into ONE reading — one productName, one ingredient list, one nutrition table.
+Never return two products and never let this be treated as two packets.
+
+${named}
+
+Because you can see the front and the back together, you can do the thing Palat
+exists for: quote what the front CLAIMS and then contradict it with what the back
+actually lists. Put the exact claim as printed in claimCheck.claim and the
+contradiction in claimCheck.reality, e.g.
+  claim: "MULTIGRAIN"
+  reality: "Refined wheat flour is the first ingredient; oats are 1%."
+If the front makes no claim that the back contradicts, set both to "—". Do not
+manufacture a gap that is not there — a pack that is honest about itself should
+come back clean.
+
+`
+}
+
+export function buildUserPrompt(people, mode, sides = []) {
   const roster = describeRoster(people)
+  const panels = describePanels(sides)
 
   const source =
     mode === 'plate'
@@ -171,15 +218,23 @@ HARD LIMITS on "seen", never break them:
   phone what is on their plate right now, not rating whoever cooked it.
 - The price or apparent class of the place means nothing. Expired stock has been
   seized from five-star kitchens. Judge the photograph, never the setting.`
-      : `This photo is the BACK of an Indian food packet. Read the ingredient list and
-the nutrition table exactly as printed, even if the print is tiny, crumpled, at an
-angle, in bad shop light, or mixed Hindi and English. Also read whatever marketing
-claim you can see on the pack ("sugar-free", "no added sugar", "multigrain",
-"high protein", "made with real fruit") and record it in frontClaims — the gap
-between that claim and the ingredient list is the single most useful thing you
-can tell this family.`
+      : `This is an Indian food packet. Read the ingredient list and the nutrition
+table exactly as printed, even if the print is tiny, crumpled, at an angle, in bad
+shop light, or mixed Hindi and English. Also read whatever marketing claim you can
+see on the pack ("sugar-free", "no added sugar", "multigrain", "high protein",
+"made with real fruit") and record it in frontClaims — the gap between that claim
+and the ingredient list is the single most useful thing you can tell this family.
 
-  return `${source}
+SERVINGS PER PACK — read this carefully, it is the number this whole screen is
+built on. Indian packs print it next to the nutrition table as "Number of Servings
+per Container - Approx. 2" or "Servings per pack: 3". Put it in servingsPerPack
+together with the serving size exactly as printed, e.g. "Approx. 2 servings ·
+30 g each". If it genuinely is not printed, use "—" and do not calculate one.
+This matters because the pack has already admitted how much it expects a person
+to eat, and nobody reads it — families eat two or three PACKETS where the pack
+says two or three BISCUITS.`
+
+  return `${panels}${source}
 
 Now give a separate verdict for EACH of these people. Same packet, different answer
 per person — that is the entire point.
@@ -192,21 +247,39 @@ all, and the reason should name the calories rather than pretend there is a
 medical problem. Someone trying to gain weight or build muscle is the opposite —
 a rich food may be a plain yes for them.
 
+WRITE EVERYTHING IN ENGLISH. Simple, spoken English a 72-year-old would follow.
+No Hindi, no Devanagari, no transliteration — the one exception is the name of a
+food that has no English word (gulab jamun, khakhra, chana), which you write in
+plain Latin letters.
+
 For every person return:
 - verdict: NO, SOMETIMES or YES for that specific person.
 - headline: under 8 words, addressed to them by name. e.g. "Not for Dadaji" /
   "Fine once a week, Mummy" / "Fine for Chotu".
-- reason: ONE sentence. Name the actual offending ingredient or number from this
-  label. If a front-of-pack claim is misleading for this person, that sentence is
-  where you say so.
-- portion: if SOMETIMES, the honest portion and frequency ("one piece, once a week").
-  If NO or YES, "—".
+
+- portion: THE NUMBER, and the most important field on the card. It is always
+  filled — never "—". This is how many of the thing this specific person can
+  have, counted in units a person eats, not grams: "0", "1", "2", "Half a pack".
+  For NO the honest answer is "0". For YES give the real ceiling ("3"), never
+  "unlimited". Keep it to three words at most.
+- portionUnit: what that number counts, plus when. "biscuits today", "pieces a
+  week", "small glasses a day". Lower case, under four words. Together the two
+  fields must read as one line: "2 · biscuits today".
+- packSays: restate the pack's own serving line for this person, e.g. "Pack says
+  2 servings · 30 g each". If the pack does not print one, "—". Never invent it.
+  Where the pack's own count is already more than this person should have, say so
+  in one clause: "Pack says 2 servings — still 2 too many for him".
+
+- reason: the SUMMARY that sits under the number. Two or three short sentences,
+  and it must contain the WHY, not just the what. Name the actual offending
+  ingredient or number off THIS label, then say plainly what that does to this
+  particular person. If a front-of-pack claim is misleading for them, this is
+  where you say so. This text is read aloud by a Listen button, so write it to be
+  heard: no brackets, no slashes, no "e.g.", no symbols, units spoken as words
+  ("thirty three grams", not "33g").
 - better: one genuinely better thing they could pick up in the same shop instead,
   as a category a shopkeeper would understand ("roasted chana", "two dates",
   "plain curd"). Never name a brand. If the food is already fine for them, "—".
-- hindi: the headline and reason together, in natural spoken Hindi written in
-  Devanagari, one short sentence, the way you would actually say it out loud to
-  a 72-year-old. Not a literal translation.
 - keyNumbers: up to 3 short strings straight off this label that justify the
   verdict, e.g. "Maltitol, 2nd ingredient", "Sodium 910 mg / 100 g", "240 kcal per piece".
 

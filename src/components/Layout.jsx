@@ -1,26 +1,67 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { usePalat } from '../store/store.jsx'
 import { isDemoMode } from '../lib/api.js'
 import Sparkle from './Sparkle.jsx'
 import PoweredBy from './PoweredBy.jsx'
 
-const NAV = [
+/**
+ * The bottom bar is a thumb-reach surface, and thumbs do not get wider when the
+ * app grows. Seven items wrapped it onto two rows, so it is split by where you
+ * are when you need each one.
+ *
+ * PRIMARY is what you touch standing in a shop with one hand on a packet.
+ * MORE is what you open sitting at home, and it lives behind a round button
+ * rather than a dropdown — a menu that opens upward would cover the verdict you
+ * are reading, which is the one thing this bar must never do.
+ *
+ * The sidebar on desktop has room for all of it and still shows everything.
+ */
+const PRIMARY = [
   { to: '/', label: 'Home', end: true, icon: HomeIcon },
   { to: '/scan', label: 'Scan', icon: ScanIcon },
+  { to: '/check', label: 'Claim check', icon: ClaimIcon },
   { to: '/family', label: 'Family', icon: FamilyIcon },
+]
+
+const MORE = [
   { to: '/safe', label: 'Safe list', icon: SafeIcon },
   { to: '/ask', label: 'Ask', icon: AskIcon },
   { to: '/report', label: 'Report', icon: ReportIcon },
 ]
 
+const NAV = [...PRIMARY, ...MORE]
+
 export default function Layout() {
   const { listFor, activeId, family } = usePalat()
+  const [moreOpen, setMoreOpen] = useState(false)
+  const location = useLocation()
+  const moreBtn = useRef(null)
 
   const badgeFor = (to) => {
     if (to === '/safe') { const n = listFor(activeId).length; return n || null }
     if (to === '/family' && family.length) return family.length
     return null
   }
+
+  // Anything hidden behind the button still has to be able to shout.
+  const hiddenBadge = MORE.some((item) => badgeFor(item.to))
+  const moreActive = MORE.some((item) => location.pathname === item.to)
+
+  // Navigating is the end of the menu's job.
+  useEffect(() => setMoreOpen(false), [location.pathname])
+
+  useEffect(() => {
+    if (!moreOpen) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setMoreOpen(false)
+        moreBtn.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [moreOpen])
 
   return (
     <div className="shell">
@@ -62,8 +103,16 @@ export default function Layout() {
         <PoweredBy className="powered--foot" />
       </main>
 
+      {moreOpen ? (
+        <div
+          className="moresheet-scrim"
+          onClick={() => setMoreOpen(false)}
+          aria-hidden="true"
+        />
+      ) : null}
+
       <nav className="tabbar">
-        {NAV.map(({ to, label, end, icon: Icon }) => (
+        {PRIMARY.map(({ to, label, end, icon: Icon }) => (
           <NavLink key={to} to={to} end={end} className="tabbar-link">
             <span className="tabbar-icon">
               <Icon />
@@ -74,12 +123,64 @@ export default function Layout() {
             <span>{label}</span>
           </NavLink>
         ))}
+
+        <div className="tabbar-more">
+          {moreOpen ? (
+            <div className="moresheet" role="menu" aria-label="More">
+              {MORE.map(({ to, label, icon: Icon }) => (
+                <NavLink key={to} to={to} className="moresheet-link" role="menuitem">
+                  <Icon />
+                  <span>{label}</span>
+                  {badgeFor(to) ? (
+                    <span className="moresheet-badge">{badgeFor(to)}</span>
+                  ) : null}
+                </NavLink>
+              ))}
+            </div>
+          ) : null}
+
+          <button
+            ref={moreBtn}
+            type="button"
+            className={
+              'morebtn' +
+              (moreOpen ? ' morebtn--open' : '') +
+              (moreActive ? ' morebtn--active' : '')
+            }
+            onClick={() => setMoreOpen((v) => !v)}
+            aria-expanded={moreOpen}
+            aria-haspopup="menu"
+            aria-label={moreOpen ? 'Close menu' : 'More — safe list, ask, report'}
+          >
+            {moreOpen ? <CloseIcon /> : <MenuIcon />}
+            {hiddenBadge && !moreOpen ? (
+              <span className="morebtn-dot" aria-hidden="true" />
+            ) : null}
+          </button>
+          <span className="tabbar-more-label">More</span>
+        </div>
       </nav>
     </div>
   )
 }
 
 /* Icons — 24px grid, 1.7 stroke, to sit with the Gemini set. */
+
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
+      <path d="M5 8h14M5 12h14M5 16h14" />
+    </svg>
+  )
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
+      <path d="M7 7l10 10M17 7L7 17" />
+    </svg>
+  )
+}
 
 function HomeIcon() {
   return (
@@ -94,6 +195,18 @@ function ScanIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
       <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
       <circle cx="12" cy="12" r="3.2" />
+    </svg>
+  )
+}
+
+/* Two panels, one flipped — the front and the back of the same pack. */
+function ClaimIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="7.5" height="14" rx="1.5" />
+      <rect x="13.5" y="5" width="7.5" height="14" rx="1.5" />
+      <path d="M6 9.5h1.5M6 12h2.5" />
+      <path d="M16.5 9.5h2M16.5 12h2M16.5 14.5h1.5" />
     </svg>
   )
 }

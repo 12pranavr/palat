@@ -151,12 +151,6 @@ export default function Ask() {
 
           <p className="reply-a">{reply.answer}</p>
 
-          {reply.hindi ? (
-            <p className="reply-hindi" lang="hi">
-              {reply.hindi}
-            </p>
-          ) : null}
-
           {reply.basedOn?.length ? (
             <ul className="flags">
               {reply.basedOn.map((b, i) => (

@@ -27,6 +27,11 @@ export const labelSchema = {
         frontClaims: { type: 'ARRAY', items: { type: 'STRING' } },
         ingredients: { type: 'ARRAY', items: { type: 'STRING' } },
         servingSize: { type: 'STRING' },
+        // The pack's own admission of how much it expects you to eat. Almost
+        // every Indian snack prints it ("Number of Servings per Container -
+        // Approx. 2") and almost nobody reads it, which makes it the most
+        // credible number Palat can put on screen: it isn't Palat's opinion.
+        servingsPerPack: { type: 'STRING' },
         perServeKcal: { type: 'STRING' },
         nutritionPer100g: {
           type: 'OBJECT',
@@ -34,6 +39,16 @@ export const labelSchema = {
             nutritionProps.map((k) => [k, { type: 'STRING' }])
           ),
           required: nutritionProps,
+        },
+        // Only meaningful when the front of the pack was actually photographed.
+        // Both "—" when nothing on the front is contradicted by the back.
+        claimCheck: {
+          type: 'OBJECT',
+          properties: {
+            claim: { type: 'STRING' },
+            reality: { type: 'STRING' },
+          },
+          required: ['claim', 'reality'],
         },
         unreadableNote: { type: 'STRING' },
       },
@@ -45,8 +60,10 @@ export const labelSchema = {
         'frontClaims',
         'ingredients',
         'servingSize',
+        'servingsPerPack',
         'perServeKcal',
         'nutritionPer100g',
+        'claimCheck',
         'unreadableNote',
       ],
 }
@@ -57,20 +74,28 @@ export const verdictSchema = {
     personId: { type: 'STRING' },
     verdict: { type: 'STRING', enum: ['NO', 'SOMETIMES', 'YES'] },
     headline: { type: 'STRING' },
-    reason: { type: 'STRING' },
+    // The number this person came for, and the first thing on the card.
+    // Always filled — "None" is an answer, "—" is not.
     portion: { type: 'STRING' },
+    // The unit that number counts, so the card can read "2 · biscuits today".
+    portionUnit: { type: 'STRING' },
+    // The pack's own serving line, restated for this person. "—" if not printed.
+    packSays: { type: 'STRING' },
+    // What used to be a one-line reason now carries the why as well: this is
+    // the summary that sits under the number, and what Listen reads out.
+    reason: { type: 'STRING' },
     better: { type: 'STRING' },
-    hindi: { type: 'STRING' },
     keyNumbers: { type: 'ARRAY', items: { type: 'STRING' } },
   },
   required: [
     'personId',
     'verdict',
     'headline',
-    'reason',
     'portion',
+    'portionUnit',
+    'packSays',
+    'reason',
     'better',
-    'hindi',
     'keyNumbers',
   ],
 }
@@ -130,26 +155,47 @@ const responseSchema = {
   required: ['label', 'dishes', 'seen', 'verdicts'],
 }
 
-export async function analyze({ imageBase64, mimeType, people, mode }) {
+export const MAX_PANELS = 4
+
+/**
+ * One product, read from one photo or several.
+ *
+ * Several photos here are PANELS OF THE SAME packet — front, back, nutrition
+ * table — not different packets. That distinction is the whole reason this is
+ * separate from batch reading: here the images must be merged into one reading,
+ * there they must never touch each other. Photographing the front alongside the
+ * back is what lets Palat quote a marketing claim and contradict it with the
+ * ingredient list, instead of hoping the claim happened to be in frame.
+ */
+export async function analyze({ imageBase64, mimeType, images, people, mode }) {
   requireApiKey()
-  if (!imageBase64) {
+
+  const panels = images?.length
+    ? images
+    : imageBase64
+      ? [{ base64: imageBase64, mimeType, side: 'back' }]
+      : []
+
+  if (!panels.length) {
     const err = new Error('No image was sent.')
     err.status = 400
     throw err
   }
+  if (panels.length > MAX_PANELS) {
+    const err = new Error(`Palat reads up to ${MAX_PANELS} photos of one packet.`)
+    err.status = 400
+    throw err
+  }
+
+  const parts = panels.map((p) => ({
+    inlineData: { mimeType: p.mimeType || 'image/jpeg', data: p.base64 },
+  }))
+  parts.push({ text: buildUserPrompt(people, mode, panels.map((p) => p.side)) })
 
   return generateJson({
     systemInstruction: SYSTEM_RULES,
     responseSchema,
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          { inlineData: { mimeType: mimeType || 'image/jpeg', data: imageBase64 } },
-          { text: buildUserPrompt(people, mode) },
-        ],
-      },
-    ],
+    contents: [{ role: 'user', parts }],
   })
 }
 

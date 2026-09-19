@@ -22,6 +22,7 @@ export const DEMO_LABEL = {
     'Artificial Flavour',
   ],
   servingSize: '1 piece (32 g)',
+  servingsPerPack: 'Approx. 8 servings · 32 g each',
   perServeKcal: '240',
   nutritionPer100g: {
     energyKcal: '512',
@@ -35,6 +36,59 @@ export const DEMO_LABEL = {
     fibreG: '1.8',
     sodiumMg: '55',
   },
+  claimCheck: {
+    claim: 'SUGAR FREE',
+    reality: 'Maltitol is the first ingredient and maida the second.',
+  },
+  unreadableNote: '',
+}
+
+/**
+ * The claim-check demo, taken from a real Unibic oats-and-coconut cookie pack.
+ *
+ * It is the clearest example of the gap Palat exists to show: the front is a
+ * photograph of rolled oats with the words "Creative Visualization" printed
+ * beside it, while the back lists refined wheat flour first, palm oil second, and
+ * 33.6 g of total sugar per 100 g. Nothing here is illegal. Every word on the
+ * front is defensible. It is still not what the buyer thinks they are holding.
+ */
+export const DEMO_CLAIM_LABEL = {
+  productName: 'Oats & Coconut Cookies',
+  brand: 'Unibic Foods India · 60 g pack',
+  readable: true,
+  isEstimate: false,
+  frontClaims: ['OATS', 'Creative Visualization'],
+  ingredients: [
+    'Refined Wheat Flour (Maida)',
+    'Sugar',
+    'Edible Vegetable Oil (Palm)',
+    'Rolled Oats (14%)',
+    'Coconut',
+    'Invert Syrup',
+    'Honey (1%)',
+    'Leavening Agents (INS 500(ii), INS 503(ii))',
+    'Salt',
+  ],
+  servingSize: '30 g',
+  servingsPerPack: 'Approx. 2 servings · 30 g each',
+  perServeKcal: '143',
+  nutritionPer100g: {
+    energyKcal: '476',
+    carbsG: '70',
+    totalSugarG: '33.6',
+    addedSugarG: '31.6',
+    proteinG: '6.2',
+    totalFatG: '19',
+    satFatG: '10.6',
+    transFatG: '0',
+    fibreG: '—',
+    sodiumMg: '285',
+  },
+  claimCheck: {
+    claim: 'Oats on the front, with rolled oats pictured',
+    reality:
+      'Refined wheat flour is the first ingredient and palm oil the third. Oats are 14 per cent, and honey is 1 per cent.',
+  },
   unreadableNote: '',
 }
 
@@ -43,34 +97,83 @@ export const DEMO_VERDICTS = [
     personId: 'dadaji',
     verdict: 'NO',
     headline: 'Not for Dadaji',
+    portion: '0',
+    portionUnit: 'pieces today',
+    packSays: 'Pack says 8 servings of 32 grams each',
     reason:
-      '"Sugar-free" here means maltitol, and it sits on maida and ghee. It still pushes blood sugar up.',
-    portion: '—',
+      'Sugar free here means maltitol, and it is sitting on maida and ghee. Maltitol still raises blood sugar, and the refined flour under it behaves like sugar too. For diabetes this is a sweet wearing a diabetic label.',
     better: 'Roasted chana, 30 g',
-    hindi: 'शुगर-फ्री लिखा है, पर अंदर माल्टिटोल, मैदा और घी है — शुगर फिर भी बढ़ेगी।',
     keyNumbers: ['Maltitol · 1st ingredient', 'Maida · 2nd', '240 kcal per piece'],
   },
   {
     personId: 'mummy',
     verdict: 'SOMETIMES',
     headline: 'Once a week, Mummy',
+    portion: '1',
+    portionUnit: 'piece a week',
+    packSays: 'Pack says 8 servings of 32 grams each',
     reason:
-      '240 calories a piece and 14 g of fat. Fine once a week — not with tea every evening.',
-    portion: 'one piece, once a week',
+      'Each piece is 240 calories and 14 grams of fat. The sodium is low so her blood pressure is not the problem here, the calories are. One with Sunday tea is fine, one every evening is a different food.',
     better: 'Dry fruit, two pieces',
-    hindi: 'एक टुकड़ा 240 कैलोरी। हफ़्ते में एक बार चलेगा, रोज़ नहीं।',
     keyNumbers: ['240 kcal / piece', '14 g fat', 'Sodium 55 mg — fine for BP'],
   },
   {
     personId: 'chotu',
     verdict: 'YES',
     headline: 'Fine for Chotu',
+    portion: '1',
+    portionUnit: 'piece after food',
+    packSays: 'Pack says 8 servings of 32 grams each',
     reason:
-      'One piece is fine. It is mostly fat and refined flour, so keep it to one, after a meal.',
-    portion: 'one piece, after food',
+      'One piece is genuinely fine for him. It is mostly fat and refined flour rather than anything harmful, so the only rule is that it comes after a meal and not instead of one.',
     better: '—',
-    hindi: 'एक टुकड़ा ठीक है, खाने के बाद। एक से ज़्यादा नहीं।',
     keyNumbers: ['240 kcal / piece', 'No allergen for him'],
+  },
+]
+
+/**
+ * Verdicts for the claim-check demo, matching DEMO_CLAIM_LABEL.
+ *
+ * Kept separate from DEMO_VERDICTS on purpose: reusing the kaju katli verdicts
+ * here put "8 servings" on screen underneath a two-serving cookie pack, which is
+ * exactly the kind of mismatch this app exists to catch.
+ */
+export const DEMO_CLAIM_VERDICTS = [
+  {
+    personId: 'dadaji',
+    verdict: 'NO',
+    headline: 'Not for Dadaji',
+    portion: '0',
+    portionUnit: 'biscuits today',
+    packSays: 'Pack says 2 servings of 30 grams each',
+    reason:
+      'The oats on the front are 14 per cent. Refined wheat flour is the first ingredient and palm oil the third, and there are 33.6 grams of total sugar in every 100 grams. For his diabetes that is a sugar biscuit with an oat photograph on it.',
+    better: 'Roasted chana, 30 g',
+    keyNumbers: ['Maida · 1st ingredient', 'Total sugars 33.6 g / 100 g', 'Palm oil · 3rd'],
+  },
+  {
+    personId: 'mummy',
+    verdict: 'SOMETIMES',
+    headline: 'Two with tea, Mummy',
+    portion: '2',
+    portionUnit: 'biscuits a week',
+    packSays: 'Pack says 2 servings of 30 grams each — that is the whole pack',
+    reason:
+      'Sodium is 285 milligrams per 100 grams, which is moderate rather than a problem for her blood pressure. The catch is the sugar and the palm oil, and that the whole pack is only two servings, so finishing it is far easier than it looks.',
+    better: 'Plain khakhra',
+    keyNumbers: ['Sodium 285 mg / 100 g', '476 kcal / 100 g', 'Saturated fat 10.6 g / 100 g'],
+  },
+  {
+    personId: 'chotu',
+    verdict: 'SOMETIMES',
+    headline: 'Two after school, Chotu',
+    portion: '2',
+    portionUnit: 'biscuits after school',
+    packSays: 'Pack says 2 servings of 30 grams each',
+    reason:
+      'Nothing here is harmful for a six-year-old, it is simply a sweet biscuit rather than the oat snack the front suggests. Two after school is a treat. The whole pack is most of a meal in sugar.',
+    better: 'Banana',
+    keyNumbers: ['Added sugars 31.6 g / 100 g', 'Oats only 14%', 'Honey 1%'],
   },
 ]
 
@@ -133,7 +236,6 @@ export const DEMO_PLATE = {
       reason: 'Dhokla is fine and the katli is two pieces — but leave the gulab jamun.',
       portion: 'dhokla, two katli, no jamun',
       better: '—',
-      hindi: 'दादाजी: ढोकला ठीक, काजू कतली दो टुकड़े, गुलाब जामुन नहीं।',
       keyNumbers: ['Estimate — no label'],
     },
     {
@@ -143,7 +245,6 @@ export const DEMO_PLATE = {
       reason: 'Nothing here is off limits, but the jamun syrup is where the sugar hides.',
       portion: 'one of each, leave the syrup',
       better: '—',
-      hindi: 'मम्मी: ढोकला ठीक, काजू कतली दो, गुलाब जामुन एक।',
       keyNumbers: ['Estimate — no label'],
     },
     {
@@ -153,7 +254,6 @@ export const DEMO_PLATE = {
       reason: 'All of it is fine at six. One of each, after food.',
       portion: 'one of each',
       better: '—',
-      hindi: 'छोटू: सब ठीक, पर एक-एक ही।',
       keyNumbers: ['Estimate — no label'],
     },
   ],

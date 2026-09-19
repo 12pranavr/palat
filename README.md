@@ -84,10 +84,70 @@ string), is labelled on screen throughout, and is cleared with `?demo=0`.
 |---|---|
 | `/` | Who is eating, the two scan entry points, the cart at a glance, last scan |
 | `/scan` | Packet or plate. Capture → real-time status → per-person verdict |
+| `/check` | One product, front **and** back. Quotes the marketing claim, contradicts it with the ingredient list |
 | `/family` | The household. Say it in one box, or hand it a prescription |
 | `/safe` | Each person's safe list, built as you scan |
 | `/ask` | Food questions about one person, grounded in their profile and your scans |
 | `/report` | Per person, what they did **not** eat — over a week, a month, or all of it |
+
+## How much, before why
+
+Every verdict card leads with a number — how many of the thing *this* person can
+have — and only then explains itself. A verdict is an opinion; a count is an
+instruction, and an instruction is what is useful in an aisle.
+
+Underneath the number sits the pack's own serving line, read straight off the
+label:
+
+> **0** biscuits today
+> Pack says 2 servings · 30 g each
+
+That second line is the strongest sentence on the screen and Palat did not write
+it. Indian packs print "Number of Servings per Container — Approx. 2" next to the
+nutrition table, where nobody looks. Unibic says two. Marigold says three. Families
+eat two or three *packets*. Palat's only job there is to repeat the manufacturer
+back to the buyer.
+
+## Claim check, and why it is its own page
+
+`/scan` answers "can my family eat this" from the back of the pack. `/check`
+answers a different question — "is this pack telling me the truth" — and it needs
+something a scan never asks for: the front, photographed on purpose.
+
+With both sides in one request, Gemini stops guessing at whatever claim happened
+to be in frame and can quote the front against the ingredient list:
+
+> Front says *oats, with rolled oats pictured*
+> Back says **refined wheat flour is the first ingredient and palm oil the third.
+> Oats are 14%.**
+
+Nothing there is illegal and every word on that front is defensible. It is still
+not what the buyer thinks they are holding.
+
+Two things find that gap, in order of trust. `findClaimGap` in
+`src/lib/guardrails.js` is deterministic and only fires when a claim word and a
+matching ingredient are both genuinely present, so it cannot invent one. Gemini
+catches what no rule anticipated — "high protein" on six grams. When the front was
+photographed deliberately, its finding wins; otherwise the rules do. A pack that is
+honest about itself comes back clean, and the page says so plainly rather than
+manufacturing a scandal.
+
+## Listen
+
+Every verdict and every claim check has a **Listen** button (Web Speech, Indian
+English voice where the device has one). This is not an accessibility
+afterthought — the person who could not read 6pt ingredient print is not going to
+read a card about it either. Someone holds up the phone and she hears the answer.
+
+Because it is read aloud, the prompt forbids brackets, slashes and symbols in the
+summary and asks for units spoken as words: *thirty three grams*, not *33g*.
+
+## Language
+
+Output is **English only** — simple, spoken English. Input is not: labels are read
+in mixed Hindi and English, and the family composer still understands a sentence
+said in Hindi or Hinglish. Only what Palat says back is English, which keeps the
+token cost down.
 
 ## How it is put together
 
@@ -95,6 +155,8 @@ string), is labelled on screen throughout, and is cleared with `?demo=0`.
 server/gemini.js       Key check, the Gemini POST, shared request plumbing
 server/prompt.js       The prompt: hidden-sugar list, tone, the medical boundary
 server/analyze.js      Label and plate reading, JSON schema enforced on the reply
+                       Also merges several photos of ONE pack (front + back)
+server/batch.js        Several photos of DIFFERENT packs, kept strictly apart
 server/parseFamily.js  Spoken sentence → structured profiles
 server/ask.js          The bounded question box, and the rules that keep it safe
 vite.config.js         Dev middleware that keeps the API key server-side
@@ -104,6 +166,8 @@ src/store/store.jsx    Family, cart and active person; localStorage-backed
 src/lib/guardrails.js  Deterministic checks that can only tighten a verdict
 src/lib/image.js       Downscale to 1600px before upload
 src/lib/compare.js     Two packets, one person, one answer — arithmetic, no API call
+src/components/ListenButton.jsx  Reads a verdict aloud (Web Speech)
+src/pages/ClaimCheck.jsx         Front vs back for one product
 src/pages/             One file per page
 ```
 

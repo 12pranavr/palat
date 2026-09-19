@@ -1,4 +1,5 @@
 import { usePalat } from '../store/store.jsx'
+import ListenButton from './ListenButton.jsx'
 
 const TONE = {
   NO: { key: 'no', glyph: '✕' },
@@ -6,28 +7,62 @@ const TONE = {
   YES: { key: 'yes', glyph: '✓' },
 }
 
+const said = (v) => v && v !== '—' && String(v).trim()
+
+/**
+ * The number comes first.
+ *
+ * Everything else on this card is explanation; the only thing a person standing
+ * in a shop actually needs is how many they can have. Putting the count above the
+ * reasoning is what turns a verdict into an instruction — and quoting the pack's
+ * own serving line underneath it means the strictest number on screen is the
+ * manufacturer's, not Palat's.
+ */
 export default function VerdictCard({ person, verdict, productName }) {
   const { addToSafeList, onSafeList } = usePalat()
   if (!verdict || !person) return null
 
   const tone = TONE[verdict.verdict] || TONE.SOMETIMES
-  const hasSwap = verdict.better && verdict.better !== '—'
+  const hasSwap = said(verdict.better)
   const swapAdded = hasSwap && onSafeList(verdict.better, 'swap', person.id)
+
+  // Older scans stored before the portion split still render sensibly.
+  const amount = said(verdict.portion) || (verdict.verdict === 'NO' ? '0' : '—')
+  const unit = said(verdict.portionUnit) || 'to have'
+  const packSays = said(verdict.packSays)
+
+  // Spoken aloud, so each part needs to land as its own sentence — without the
+  // full stop the headline runs straight into the number ("Fine for Chotu 1
+  // piece after food").
+  const sentence = (t) => (t && /[.!?]$/.test(t.trim()) ? t.trim() : `${(t || '').trim()}.`)
+
+  const spoken = [
+    sentence(verdict.headline),
+    `${amount} ${unit}.`,
+    packSays ? sentence(packSays) : '',
+    verdict.reason,
+    hasSwap ? `Better: ${verdict.better}.` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <section className={'verdict verdict--' + tone.key} key={person.id + verdict.verdict}>
       <header className="verdict-head">
         <span className="verdict-glyph">{tone.glyph}</span>
         <h2 className="verdict-headline">{verdict.headline}</h2>
+        <ListenButton text={spoken} label={`Listen to the verdict for ${person.name}`} />
       </header>
 
-      <p className="verdict-line">{verdict.reason}</p>
-
-      {verdict.hindi ? (
-        <p className="verdict-hindi" lang="hi">
-          {verdict.hindi}
+      <div className="howmuch">
+        <p className="howmuch-figure">
+          <strong className="howmuch-amount">{amount}</strong>
+          <span className="howmuch-unit">{unit}</span>
         </p>
-      ) : null}
+        {packSays ? <p className="howmuch-pack">{packSays}</p> : null}
+      </div>
+
+      <p className="verdict-line">{verdict.reason}</p>
 
       {verdict.keyNumbers?.length ? (
         <ul className="flags">
@@ -35,13 +70,6 @@ export default function VerdictCard({ person, verdict, productName }) {
             <li key={i}>{n}</li>
           ))}
         </ul>
-      ) : null}
-
-      {verdict.portion && verdict.portion !== '—' ? (
-        <p className="verdict-portion">
-          <span>How much</span>
-          <strong>{verdict.portion}</strong>
-        </p>
       ) : null}
 
       {verdict.guarded ? (
