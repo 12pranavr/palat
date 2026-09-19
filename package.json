@@ -1,0 +1,26 @@
+{
+  "name": "palat",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Flip the packet. Then decide.",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "preview": "vite preview --host"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "dotenv": "^16.4.7",
+    "vite": "^6.0.7"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

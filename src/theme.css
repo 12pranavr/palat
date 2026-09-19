@@ -1,0 +1,124 @@
+/* Palat design tokens — Gemini visual language.
+   Values taken from the design concept, not approximated. */
+
+:root {
+  /* Surfaces, darkest to lightest */
+  --page: #08090b;
+  --screen: #121316;
+  --camera: #0c0d0f;
+  --card: #17181c;
+  --card-2: #191a1e;
+  --raised: #1e2024;
+  --raised-2: #23252a;
+
+  /* Lines */
+  --line: #26282d;
+  --line-strong: #2a2d31;
+  --line-faint: #1e2024;
+
+  /* Text, brightest to dimmest */
+  --text-hi: #f0f4fa;
+  --text: #e8eaed;
+  --text-body: #e3e3e3;
+  --text-mid: #c3c7cb;
+  --text-dim: #9aa0a6;
+  --text-faint: #8a8f94;
+
+  /* Gemini */
+  --g1: #4893ff;
+  --g2: #9b72cb;
+  --g3: #d96570;
+  --accent: #3186ff;
+  --link: #8ab4f8;
+  --link-hover: #aecbfa;
+  --accent-wash: rgba(72, 147, 255, 0.1);
+  --accent-wash-2: rgba(72, 147, 255, 0.16);
+  --accent-ring: rgba(116, 163, 255, 0.42);
+
+  /* Verdicts */
+  --no: #f28b82;
+  --no-bg: rgba(242, 139, 130, 0.1);
+  --no-line: rgba(242, 139, 130, 0.3);
+  --maybe: #fdd663;
+  --maybe-bg: rgba(253, 214, 99, 0.1);
+  --maybe-line: rgba(253, 214, 99, 0.28);
+  --yes: #81c995;
+  --yes-bg: rgba(129, 201, 149, 0.1);
+  --yes-line: rgba(129, 201, 149, 0.28);
+
+  /* Avatars */
+  --av-1: #8ab4f8;
+  --av-2: #c58af9;
+  --av-3: #81c995;
+  --av-4: #fdd663;
+  --av-5: #f28b82;
+
+  /* Shape */
+  --r-pill: 999px;
+  --r-xl: 24px;
+  --r-lg: 22px;
+  --r-md: 18px;
+  --r-sm: 14px;
+  --r-chip: 8px;
+
+  --shell: 1180px;
+  --nav-w: 248px;
+
+  color-scheme: dark;
+}
+
+@keyframes palatSweep {
+  0% {
+    transform: translateY(-10%);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(560%);
+    opacity: 0;
+  }
+}
+
+@keyframes palatPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0.15;
+  }
+}
+
+@keyframes palatRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes palatSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
