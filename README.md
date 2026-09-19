@@ -34,6 +34,41 @@ phone on the same wifi; "Scan" opens the rear camera. Plain HTTP works because
 capture goes through a file input rather than `getUserMedia`, which would need
 HTTPS.
 
+### Deploying
+
+`npm run dev` uses Vite's dev server and its middleware. Production does not have
+either, so `server/index.js` is what actually runs: one file, no extra
+dependencies, serving the built pages plus the four API routes, binding whatever
+`PORT` the host provides.
+
+```bash
+npm run build   # produces dist/
+npm start       # serves dist/ and /api/* on $PORT (default 8080)
+```
+
+On Railway: **New Project → Deploy from GitHub repo**, and it detects Node on its
+own — install, `npm run build`, `npm start`, no config file needed. Add the keys
+under **Variables**, one per row:
+
+```
+GEMINI_API_KEY
+GEMINI_API_KEY_2
+GEMINI_API_KEY_3
+GEMINI_API_KEY_4
+```
+
+Never commit `.env`. The host's variables always win over any file, so the
+dashboard is the single source of truth in production.
+
+Then **Settings → Networking → Generate Domain**, and open `/healthz` — it
+reports `{"ok":true,"keys":4,"model":"..."}`. If `keys` is not what you expect, a
+variable name is misspelled. If the build fails on `vite: not found`, set the
+install command to `npm ci --include=dev`; Vite is a devDependency and some
+configurations skip those.
+
+Deployed also fixes something local testing cannot: phone camera capture needs
+HTTPS, which Railway provides by default.
+
 ### Demo mode
 
 `http://localhost:5173/?demo=1` runs frozen readings without calling Gemini —
