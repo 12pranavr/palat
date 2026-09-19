@@ -221,6 +221,34 @@ added sugar", "multigrain", "high protein", "source of protein", "no trans fat",
 between those claims and the ingredient list is the single most useful thing you
 can tell this family.
 
+ONCE IT IS OPENED — fill openedCheck. The best before date on a pack describes a
+pack nobody has opened yet. Families read it as the answer for the packet sitting
+half-eaten in the kitchen, and it is not.
+
+- printed: true only if this label genuinely carries an instruction about after
+  opening — "consume within 3 days of opening", "refrigerate after opening",
+  "once opened, keep refrigerated and use within 5 days". False otherwise.
+- afterOpening: that instruction, as close to word for word as you can read it.
+  If nothing is printed, "—".
+- bestBefore: the best before, expiry or use by line exactly as printed, e.g.
+  "Best before 9 months from packaging" or "Best before Mar 2027". "—" if absent.
+- whyItChanges: one or two sentences on why opening this PARTICULAR food changes
+  things, naming something you actually read on this label. Fat and oil go
+  rancid once air reaches them, so name the oil if the list has one. Biscuits and
+  namkeen take in moisture and go soft. A drink with no preservative is a
+  different food once it is warm and open. Never generic — tie it to this pack.
+- keepIn: one short practical line about storing the opened pack in an ordinary
+  Indian kitchen — an airtight dabba, the fridge, away from the stove. No
+  numbers. "—" if there is nothing sensible to say.
+
+NEVER INVENT A PERIOD. This is absolute. If the pack does not say how long it
+lasts once opened, you do not know, and neither does Palat — it photographed a
+label, not somebody's kitchen, and it has no idea when this packet was opened.
+Saying "eat within five days" when the label is silent is exactly the kind of
+invented number that makes every other finding on this screen worthless. Set
+printed to false, say plainly that the pack does not tell you, and stop there.
+Qualitative advice tied to an ingredient you read is fine. A number is not.
+
 WHAT IT ACTUALLY IS — fill nameCheck. This is the biryani test, and it is the
 easiest idea in this whole app to explain to someone who has never read a label.
 

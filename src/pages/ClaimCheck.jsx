@@ -8,6 +8,7 @@ import VerdictCard from '../components/VerdictCard.jsx'
 import LabelSheet from '../components/LabelSheet.jsx'
 import ClaimList from '../components/ClaimList.jsx'
 import WhatItIs from '../components/WhatItIs.jsx'
+import OnceOpened from '../components/OnceOpened.jsx'
 
 /**
  * Front against back, for ONE product.
@@ -191,6 +192,8 @@ export default function ClaimCheck() {
               </p>
             </section>
           )}
+
+          <OnceOpened check={result.openedCheck} />
 
           {label?.servingsPerPack && label.servingsPerPack !== '—' ? (
             <section className="packsays">

@@ -40,6 +40,15 @@ export const DEMO_LABEL = {
     claim: 'SUGAR FREE',
     reality: 'Maltitol is the first ingredient and maida the second.',
   },
+  // Case one: the pack actually tells you, so Palat quotes it.
+  openedCheck: {
+    printed: true,
+    afterOpening: 'Consume within 7 days of opening. Refrigerate after opening.',
+    bestBefore: 'Best before 3 months from packaging',
+    whyItChanges:
+      'There is ghee and palm fat in this, and fat is what turns first once air gets to it. Milk solids in an open box at room temperature are the other reason the pack asks for the fridge.',
+    keepIn: 'the fridge, in a closed dabba — not the open mithai box',
+  },
   unreadableNote: '',
 }
 
@@ -93,6 +102,15 @@ export const DEMO_CLAIM_LABEL = {
     transFatG: '0',
     fibreG: '—',
     sodiumMg: '—',
+  },
+  // Case two: nothing printed about opening, which is itself the finding.
+  openedCheck: {
+    printed: false,
+    afterOpening: '—',
+    bestBefore: 'Best before 9 months from packaging',
+    whyItChanges:
+      'Palm oil is the third ingredient, and fat is what turns first once air gets to it. Biscuits also pull in moisture and go soft within days in an open sleeve.',
+    keepIn: 'an airtight dabba, away from the stove',
   },
   nameCheck: {
     honestName: 'A maida biscuit with a little hazelnut',

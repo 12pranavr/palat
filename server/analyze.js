@@ -40,6 +40,27 @@ export const labelSchema = {
           ),
           required: nutritionProps,
         },
+        // What happens once the seal is broken.
+        //
+        // The best-before date describes a pack nobody has opened yet. The
+        // moment it is open that date stops governing, and in India a
+        // post-opening instruction is only required where health and safety
+        // demand one — so ketchup and juice carry it and a biscuit packet
+        // usually does not. Palat reports what is printed and names the silence
+        // when nothing is. It never estimates a period of its own: Palat does
+        // not know when this packet was opened, and inventing a number here
+        // would break the rule that makes every other finding believable.
+        openedCheck: {
+          type: 'OBJECT',
+          properties: {
+            printed: { type: 'BOOLEAN' },
+            afterOpening: { type: 'STRING' },
+            bestBefore: { type: 'STRING' },
+            whyItChanges: { type: 'STRING' },
+            keepIn: { type: 'STRING' },
+          },
+          required: ['printed', 'afterOpening', 'bestBefore', 'whyItChanges', 'keepIn'],
+        },
         // The biryani test: a product named after an ingredient should be
         // mostly that ingredient. Percentages alone leave the arithmetic to a
         // person in a shop; this is the plain sentence they actually need.
@@ -87,6 +108,7 @@ export const labelSchema = {
         'perServeKcal',
         'nutritionPer100g',
         'nameCheck',
+        'openedCheck',
         'claimChecks',
         'unreadableNote',
       ],

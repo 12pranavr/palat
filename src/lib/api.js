@@ -93,6 +93,7 @@ export async function analyzeLabel({ base64, mimeType, people, mode = 'label' })
     findings,
     claimChecks,
     nameCheck: resolveNameCheck(label),
+    openedCheck: resolveOpenedCheck(label, findings),
     claimGap: worstClaim(claimChecks),
     verdicts,
     dishes: payload.dishes || [],
@@ -196,6 +197,58 @@ export function resolveNameCheck(label = {}) {
   }
 }
 
+/**
+ * What happens once the seal is broken.
+ *
+ * The best-before date on a pack describes a pack nobody has opened. Families
+ * read it as the answer for the half-eaten packet in the kitchen, and it is not
+ * the answer to that question at all. In India a post-opening instruction is
+ * only required where health and safety demand one, so ketchup and juice carry
+ * it and a biscuit packet usually does not.
+ *
+ * Two jobs, and only two. Quote the instruction when the pack gives one. Name
+ * the silence when it does not.
+ *
+ * What this must never do is fill the silence with a number. Palat photographed
+ * a label, not a kitchen — it has no idea when this packet was opened, and the
+ * research on secondary shelf life finds that even manufacturers' own declared
+ * periods are frequently unsupported. A number invented here would be exactly
+ * the kind of fabrication that makes the maltitol finding worth believing, so
+ * the period is stripped unless the model said it read one off the pack.
+ */
+export function resolveOpenedCheck(label = {}, findings = []) {
+  const said = (v) => v && v !== '—' && String(v).trim()
+  const model = label.openedCheck || {}
+
+  const printed = !!model.printed && !!said(model.afterOpening)
+  const bestBefore = said(model.bestBefore) || null
+
+  // Nothing read, nothing printed, nothing worth saying.
+  if (!printed && !bestBefore && !said(model.whyItChanges)) return null
+
+  // Fat is what turns first once air gets in, and it is the one reason Palat can
+  // stand behind from the ingredient list alone rather than taking the model's
+  // word for it.
+  const fat = findings.find((f) => f.category === 'bad-fat')
+  const fallbackWhy = fat
+    ? `${capitalise(fat.term)} is in this, and fat is what turns first once air gets to it.`
+    : null
+
+  return {
+    printed,
+    // Guarded deliberately: if the model did not claim to have READ an
+    // instruction, no period survives, whatever it wrote in the field.
+    afterOpening: printed ? said(model.afterOpening) : null,
+    bestBefore,
+    whyItChanges: said(model.whyItChanges) || fallbackWhy,
+    keepIn: said(model.keepIn) || null,
+  }
+}
+
+function capitalise(w) {
+  return String(w).charAt(0).toUpperCase() + String(w).slice(1)
+}
+
 /** The single worst claim, for places that only have room for one line. */
 export function worstClaim(checks = []) {
   return checks.find((c) => c.verdict !== 'holds') || null
@@ -256,6 +309,7 @@ export async function checkClaims({ front, back, extra = [], people }) {
     findings,
     claimChecks: resolveClaimChecks(label, findings),
     nameCheck: resolveNameCheck(label),
+    openedCheck: resolveOpenedCheck(label, findings),
     verdicts,
     dishes: [],
     seen: null,
@@ -300,6 +354,7 @@ export async function analyzeBatch({ images, people }) {
       findings,
       claimChecks: resolveClaimChecks(label, findings),
       nameCheck: resolveNameCheck(label),
+      openedCheck: resolveOpenedCheck(label, findings),
       mode: 'label',
       dishes: [],
       verdicts: people.map((person) => {

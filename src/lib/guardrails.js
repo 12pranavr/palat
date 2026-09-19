@@ -65,6 +65,27 @@ function findTerm(haystack, term) {
 }
 
 /**
+ * Indian labels almost never print the words "palm oil".
+ *
+ * They print "Edible Vegetable Oil (Palm)" or "Edible Vegetable Fat (Palm)",
+ * which is the same thing written so the two words never touch — and a plain
+ * term match sails straight past it. Both packs this app was tested against
+ * write it exactly that way, which means the bad-fat check was silently never
+ * firing for palm oil on real Indian products, and verdicts for anyone with BP,
+ * cholesterol or heart trouble were never being tightened for it.
+ *
+ * Rather than loosen the term list (bare "palm" would catch palm sugar and
+ * hearts of palm), the line is only rewritten when it mentions palm AND is
+ * already talking about an oil or a fat. The original string is untouched for
+ * display; this only feeds the matcher.
+ */
+function probeText(text) {
+  const mentionsPalm = /\bpalm\b|\bpalmolein\b|\bpalm olein\b/.test(text)
+  const isAFat = /\b(oils?|fats?|vanaspati|shortening)\b/.test(text)
+  return mentionsPalm && isAFat ? text + ' palm oil' : text
+}
+
+/**
  * Scan an ingredient list. One finding per ingredient that trips a rule, keeping
  * the longest (most specific) matched term for that ingredient.
  */
@@ -75,10 +96,12 @@ export function scanIngredients(ingredients = []) {
     const text = String(raw || '').toLowerCase()
     if (!text.trim()) return
 
+    const probe = probeText(text)
+
     let best = null
     for (const category of CATEGORIES) {
       for (const term of category.terms) {
-        if (!findTerm(text, term)) continue
+        if (!findTerm(probe, term)) continue
         if (!best || term.length > best.term.length) best = { term, category }
       }
     }

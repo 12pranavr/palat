@@ -13,6 +13,7 @@ import BatchResults from '../components/BatchResults.jsx'
 import SeenCard from '../components/SeenCard.jsx'
 import ClaimList from '../components/ClaimList.jsx'
 import WhatItIs from '../components/WhatItIs.jsx'
+import OnceOpened from '../components/OnceOpened.jsx'
 
 export default function Scan() {
   const {
@@ -318,6 +319,8 @@ export default function Scan() {
           {result.claimChecks?.length ? (
             <ClaimList checks={result.claimChecks} compact />
           ) : null}
+
+          <OnceOpened check={result.openedCheck} />
 
           {result.mode === 'plate' ? <SeenCard seen={result.seen} /> : null}
 

@@ -3160,3 +3160,102 @@ h3 {
   font-weight: 600;
   text-align: right;
 }
+
+
+/* ============ once you open it ============
+   Two states, and the silent one is a finding rather than an empty state. The
+   printed answer gets the confident treatment; the silence gets the same
+   typographic weight, because "this pack doesn't say" is the honest answer and
+   should not look like a failure to load.
+   ============================================================ */
+
+.opened {
+  border-radius: 18px;
+  padding: 16px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.opened--printed {
+  border-color: rgba(127, 180, 255, 0.34);
+  background: rgba(127, 180, 255, 0.08);
+}
+
+.opened-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.opened-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.opened--printed .opened-label { color: #7fb4ff; }
+
+.opened-answer {
+  margin: 0;
+  font-size: clamp(19px, 4.6vw, 23px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.opened-source {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  opacity: 0.6;
+}
+
+.opened-bb {
+  margin: 12px 0 0;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.opened-bb-date {
+  font-weight: 700;
+}
+
+.opened-bb-note {
+  opacity: 0.75;
+}
+
+.opened-why {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  opacity: 0.88;
+}
+
+.opened-keep {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 11px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 14px;
+}
+
+.opened-keep span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.opened-keep strong {
+  font-weight: 700;
+}
+
+
