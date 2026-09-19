@@ -21,6 +21,11 @@ const OVERLOADED = /high demand|overloaded|unavailable|try again later/i
 //   overloaded    -> the MODEL is busy. Another key on the same model fails too.
 //                    Rotate the model.
 const OUT_OF_QUOTA = /quota|billing|rate limit|resource[_ ]exhausted/i
+// A third case, and the one that actually broke the first deploy: the key is
+// refused outright — mistyped, revoked, or its project denied access. Like a
+// quota error this is the KEY's problem, so the answer is the next key. Unlike a
+// quota error it will not fix itself, so that key is set aside for good.
+const BAD_KEY = /invalid authentication|api key not valid|permission denied|denied access|api_key_invalid|unauthenticated/i
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -32,6 +37,20 @@ const PLACEHOLDERS = [
 ]
 
 const isReal = (key) => key && !PLACEHOLDERS.includes(key.toLowerCase())
+
+/**
+ * Clean a key the way a person actually pastes one. The common mistake when
+ * filling in a hosting dashboard is pasting the whole line — name, equals sign
+ * and all — into the value box, which produces a key Google rejects with a
+ * confusing "invalid authentication credentials". Quotes and stray whitespace
+ * are the other two.
+ */
+function cleanKey(raw) {
+  let key = (raw || '').trim().replace(/^["']|["']$/g, '').trim()
+  const pasted = key.match(/^GEMINI_API_KEYS?(?:_\d+)?\s*=\s*(.+)$/i)
+  if (pasted) key = pasted[1].trim().replace(/^["']|["']$/g, '').trim()
+  return key
+}
 
 /** Every key configured, in preference order, de-duplicated. */
 export function apiKeys() {
@@ -46,7 +65,7 @@ export function apiKeys() {
     ...(process.env.GEMINI_API_KEYS || '').split(','),
   ]
 
-  return [...new Set(raw.map((k) => (k || '').trim()).filter(isReal))]
+  return [...new Set(raw.map(cleanKey).filter(isReal))]
 }
 
 /**
@@ -79,15 +98,23 @@ function modelChain() {
 // rotates on. Lives in memory — a restart is a fresh start, which is correct.
 const COOLDOWN_MS = 90_000
 const exhausted = new Map()
+// Keys Google refused outright. No cooldown — a revoked key does not recover.
+const rejected = new Set()
 
-const available = (index) => (exhausted.get(index) || 0) < Date.now()
+const available = (index) =>
+  !rejected.has(index) && (exhausted.get(index) || 0) < Date.now()
 
-function markExhausted(index, total) {
-  exhausted.set(index, Date.now() + COOLDOWN_MS)
-  const left = [...Array(total).keys()].filter(available).length
+const usableCount = (total) => [...Array(total).keys()].filter(available).length
+
+function setAside(index, total, reason) {
+  if (reason === 'rejected') rejected.add(index)
+  else exhausted.set(index, Date.now() + COOLDOWN_MS)
+
+  const left = usableCount(total)
+  const why = reason === 'rejected' ? 'was refused by Google' : 'is out of quota'
   console.warn(
-    `[palat] Gemini key ${index + 1}/${total} is out of quota; ` +
-      (left ? `switching to another key (${left} still usable).` : 'no keys left for now.')
+    `[palat] Gemini key ${index + 1}/${total} ${why}; ` +
+      (left ? `switching to another key (${left} still usable).` : 'no keys left.')
   )
 }
 
@@ -128,9 +155,13 @@ async function callOnce({ apiKey, model, systemInstruction, contents, responseSc
     } catch {}
     const err = new Error(detail)
     err.status = res.status
-    err.outOfQuota = OUT_OF_QUOTA.test(detail)
+    err.badKey =
+      BAD_KEY.test(detail) || res.status === 401 || (res.status === 403 && !OUT_OF_QUOTA.test(detail))
+    err.outOfQuota = !err.badKey && OUT_OF_QUOTA.test(detail)
     err.retryable =
-      !err.outOfQuota && (res.status === 429 || res.status === 503 || OVERLOADED.test(detail))
+      !err.badKey &&
+      !err.outOfQuota &&
+      (res.status === 429 || res.status === 503 || OVERLOADED.test(detail))
     err.model = model
     throw err
   }
@@ -189,8 +220,10 @@ export async function generateJson({ systemInstruction, contents, responseSchema
     } catch (err) {
       last = err
 
-      if (err.outOfQuota) {
-        markExhausted(keyIndex, keys.length)
+      // Both of these are the key's problem, not the model's, so the answer to
+      // both is the next key.
+      if (err.badKey || err.outOfQuota) {
+        setAside(keyIndex, keys.length, err.badKey ? 'rejected' : 'quota')
         const next = nextKey(keys.length, keyIndex)
         if (next == null) break
         keyIndex = next
@@ -215,7 +248,14 @@ export async function generateJson({ systemInstruction, contents, responseSchema
   }
 
   let message
-  if (last?.outOfQuota) {
+  if (last?.badKey) {
+    const total = keys.length
+    message =
+      `Google refused ${rejected.size === total ? 'every key' : 'this key'}: mistyped, revoked, ` +
+      'or the key\'s project has been denied access. Check the GEMINI_API_KEY values — when ' +
+      'pasting into a hosting dashboard, the value box takes only the key itself, not the ' +
+      'whole NAME=value line. Demo mode (add ?demo=1 to the address) works without any key.'
+  } else if (last?.outOfQuota) {
     const n = keys.length
     message =
       n > 1
