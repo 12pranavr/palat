@@ -33,13 +33,21 @@ export default function Scan() {
   // The packet being compared against, once you ask to compare.
   const [rival, setRival] = useState(null)
   const [comparing, setComparing] = useState(false)
+  // Photos waiting to be read. A camera input can only ever hand back ONE
+  // file per tap, so without somewhere to put them a second packet is
+  // impossible — which quietly made batch reading unreachable from the camera.
+  const [tray, setTray] = useState([])
+  const [adding, setAdding] = useState(false)
   const cameraInput = useRef(null)
   const fileInput = useRef(null)
 
   const result = phase === 'done' ? lastScan : null
   const showingBatch = phase === 'done' && batch && !result
   const showCapture = (!result && !showingBatch) || comparing
-  const busy = phase === 'prep' || phase === 'reading'
+  const busy = phase === 'prep' || phase === 'reading' || adding
+  // A rival packet and a plate are both single-photo questions; only the
+  // several-different-packets case gets a tray.
+  const staging = tray.length > 0 && !comparing && mode !== 'plate'
 
   // A result from a previous visit is still on screen when you come back.
   useEffect(() => {
@@ -72,24 +80,20 @@ export default function Scan() {
     return []
   }, [phase, result, family.length, mode, pending])
 
-  async function run(file) {
+  /** One product. `image` is already prepared, or null in demo mode. */
+  async function analyseOne(image) {
     setError('')
     setPending(1)
-    setPhase('prep')
+    setPhoto(image?.dataUrl || null)
+    setPhase('reading')
     try {
-      const image = file
-        ? await prepareImage(file)
-        : { dataUrl: null, base64: null, mimeType: null }
-      setPhoto(image.dataUrl)
-      setPhase('reading')
-
       const data = await analyzeLabel({
-        base64: image.base64,
-        mimeType: image.mimeType,
+        base64: image?.base64 || null,
+        mimeType: image?.mimeType || null,
         people: family,
         mode,
       })
-      const scan = { ...data, photo: image.dataUrl, at: Date.now() }
+      const scan = { ...data, photo: image?.dataUrl || null, at: Date.now() }
 
       if (comparing) {
         setRival(scan)
@@ -98,55 +102,95 @@ export default function Scan() {
         setLastScan(scan)
       }
       recordScan(scan)
+      setTray([])
       setPhase('done')
     } catch (err) {
       setError(err.message)
       setPhase('idle')
       if (comparing) setComparing(false)
-      else setPhoto(null)
     }
   }
 
-  async function runBatch(files) {
+  /** Several DIFFERENT packets, read in one call rather than one wait each. */
+  async function analyseMany(images) {
     setError('')
-    setPhase('prep')
     setBatch(null)
     setLastScan(null)
-    setPending(files.length)
+    setPending(images.length)
+    setPhoto(images[0]?.dataUrl || null)
+    setPhase('reading')
     try {
-      const images = []
-      for (const file of files) images.push(await prepareImage(file))
-      setPhoto(images[0].dataUrl)
-      setPhase('reading')
-
       const products = await analyzeBatch({ images, people: family })
       setBatch(products)
       products.filter((p) => !p.failed).forEach(recordScan)
+      setTray([])
       setPhase('done')
     } catch (err) {
       setError(err.message)
-      setPhoto(null)
       setPhase('idle')
     }
   }
 
-  const pick = (event) => {
+  const readTray = () => {
+    if (!tray.length || busy) return
+    return tray.length === 1 ? analyseOne(tray[0]) : analyseMany(tray)
+  }
+
+  /**
+   * Captured photos go into the tray, not straight to Gemini.
+   *
+   * Two things fall out of that. A second packet becomes possible at all, and
+   * you get to look at the photo before spending an API call — a blurry label
+   * used to cost a call and come back "couldn't read it".
+   *
+   * Comparing a rival packet and reading a plate are both single-photo
+   * questions, so those still go straight through.
+   */
+  const pick = async (event) => {
     const files = [...(event.target.files || [])]
     event.target.value = ''
     if (!files.length) return
+    setError('')
 
-    if (files.length === 1) return run(files[0])
-
-    if (files.length > MAX_IMAGES) {
-      setError(
-        `That is ${files.length} photos. Palat reads up to ${MAX_IMAGES} packets at a time — pick fewer.`
-      )
+    if (comparing || mode === 'plate') {
+      setAdding(true)
+      try {
+        const image = await prepareImage(files[0])
+        await analyseOne(image)
+      } catch (err) {
+        setError(err.message)
+        setPhase('idle')
+      } finally {
+        setAdding(false)
+      }
       return
     }
-    runBatch(files)
+
+    const room = MAX_IMAGES - tray.length
+    if (room <= 0) {
+      setError(`Palat reads up to ${MAX_IMAGES} packets at a time. Read these first.`)
+      return
+    }
+
+    setAdding(true)
+    try {
+      const prepared = []
+      for (const file of files.slice(0, room)) prepared.push(await prepareImage(file))
+      setTray((t) => [...t, ...prepared])
+      if (files.length > room) {
+        setError(
+          `Added ${room} of ${files.length}. Palat reads up to ${MAX_IMAGES} packets at a time.`
+        )
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setAdding(false)
+    }
   }
 
   const reset = () => {
+    setTray([])
     setLastScan(null)
     setBatch(null)
     setRival(null)
@@ -224,27 +268,84 @@ export default function Scan() {
               Now photograph the other packet. Palat will put them side by side.
             </p>
           ) : null}
-          <ScanStage photo={photo} scanning={busy} status={status} mode={mode} />
+          <ScanStage
+            photo={tray.length ? tray[tray.length - 1].dataUrl : photo}
+            scanning={busy}
+            status={status}
+            mode={mode}
+          />
+
+          {staging ? (
+            <div className="tray">
+              <div className="tray-strip">
+                {tray.map((img, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="tray-shot"
+                    onClick={() => setTray((t) => t.filter((_, j) => j !== i))}
+                    aria-label={`Remove photo ${i + 1}`}
+                  >
+                    <img src={img.dataUrl} alt="" />
+                    <span className="tray-x" aria-hidden="true">
+                      ×
+                    </span>
+                  </button>
+                ))}
+
+                {tray.length < MAX_IMAGES ? (
+                  <button
+                    type="button"
+                    className="tray-add"
+                    disabled={busy}
+                    onClick={() => cameraInput.current?.click()}
+                    aria-label="Add another packet"
+                  >
+                    +
+                  </button>
+                ) : null}
+              </div>
+
+              <button type="button" className="tray-go" disabled={busy} onClick={readTray}>
+                {busy
+                  ? 'Reading…'
+                  : tray.length === 1
+                    ? 'Read it'
+                    : `Read ${tray.length} packets`}
+              </button>
+
+              <p className="tray-hint">
+                {tray.length >= MAX_IMAGES
+                  ? 'That is the most Palat reads at once. Read these, then scan more.'
+                  : 'Tap a photo to remove it. One photo per packet — different products, not two sides of one.'}
+              </p>
+            </div>
+          ) : null}
+
           <div className="shutter-row">
             <button
               type="button"
               className="shutter"
               disabled={busy}
-              onClick={() => (isDemoMode() ? run(null) : cameraInput.current?.click())}
+              onClick={() => (isDemoMode() ? analyseOne(null) : cameraInput.current?.click())}
               aria-label="Capture"
             >
               <span className={busy ? 'shutter-dot shutter-dot--busy' : 'shutter-dot'} />
             </button>
             <span className="shutter-hint">
               {busy
-                ? 'Reading…'
+                ? adding
+                  ? 'Getting the photo ready…'
+                  : 'Reading…'
                 : isDemoMode()
                   ? 'Tap to run the frozen reading'
-                  : 'Tap to capture'}
+                  : staging
+                    ? 'Tap to add another packet'
+                    : 'Tap to capture'}
             </span>
             {!busy && !isDemoMode() ? (
               <button type="button" className="linkish" onClick={() => fileInput.current?.click()}>
-                {comparing
+                {comparing || mode === 'plate'
                   ? 'or choose a photo'
                   : `or choose photos — up to ${MAX_IMAGES} packets at once`}
               </button>
