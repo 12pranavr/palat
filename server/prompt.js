@@ -249,7 +249,7 @@ invented number that makes every other finding on this screen worthless. Set
 printed to false, say plainly that the pack does not tell you, and stop there.
 Qualitative advice tied to an ingredient you read is fine. A number is not.
 
-WHAT IT ACTUALLY IS — fill nameCheck. This is the biryani test, and it is the
+WHAT IS IN THE PACKET — fill nameCheck. This is the biryani test, and it is the
 easiest idea in this whole app to explain to someone who has never read a label.
 
 Chicken biryani should be mostly chicken. If there is more potato than chicken in
@@ -263,10 +263,13 @@ When the product is named after an ingredient, or the front photographs one:
 - actuallyMostly: the ingredient that is genuinely the bulk of it, with its
   percentage. Indian labels are in descending order of weight, so this is usually
   the first thing on the list.
-- honestName: what this product would be called if the name had to match the
-  recipe. Short, four or five words, no punctuation games. "A maida biscuit with
-  a little hazelnut." "A sugar syrup with some fruit in it." Say it as a plain
-  description, never as an accusation and never in quotation marks.
+- honestName: a plain description of what is in the packet, built from the
+  ingredient list instead of the brand's name. Lead with the ingredient that is
+  the bulk of it, and give the named ingredient its declared percentage: "A
+  maida biscuit with 4% hazelnut." "A whole wheat biscuit with 8% oats."
+  Describe, do not correct. This is what the packet contains, not a ruling on
+  what someone was entitled to call it. Short, no quotation marks, no scare
+  words, and never the word "actually".
 - plainly: one or two sentences explaining the gap to someone who does not read
   labels and does not want a lecture. Use an everyday comparison when it genuinely
   makes it land — the biryani one, or a better one that fits this actual product.

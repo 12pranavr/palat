@@ -22,8 +22,8 @@ export default function WhatItIs({ check }) {
   return (
     <section className="whatitis">
       <header className="whatitis-head">
-        <span className="whatitis-label">What this actually is</span>
-        <ListenButton text={spoken} label="Listen to what this actually is" />
+        <span className="whatitis-label">What&rsquo;s in the packet</span>
+        <ListenButton text={spoken} label="Listen to what is in the packet" />
       </header>
 
       {check.honestName ? (
@@ -52,7 +52,7 @@ export default function WhatItIs({ check }) {
           ) : null}
           {check.actuallyMostly ? (
             <div className="whatitis-row">
-              <dt>Actually mostly</dt>
+              <dt>Mostly</dt>
               <dd>{check.actuallyMostly}</dd>
             </div>
           ) : null}

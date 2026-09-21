@@ -13,9 +13,9 @@ import ListenButton from './ListenButton.jsx'
  * believing the findings that matter.
  */
 const TONE = {
-  misleading: { key: 'no', glyph: '✕', word: 'Misleading' },
-  technically: { key: 'maybe', glyph: '~', word: 'Technically true' },
-  holds: { key: 'yes', glyph: '✓', word: 'Holds up' },
+  misleading: { key: 'no', glyph: '!', word: 'Not what it sounds like' },
+  technically: { key: 'maybe', glyph: '~', word: 'True, up to a point' },
+  holds: { key: 'yes', glyph: '✓', word: 'Checks out' },
 }
 
 export default function ClaimList({ checks = [], compact = false }) {
@@ -36,9 +36,9 @@ export default function ClaimList({ checks = [], compact = false }) {
           <p className="claims-title">
             {bad.length
               ? `${bad.length} of ${checks.length} claim${checks.length === 1 ? '' : 's'} ${
-                  bad.length === 1 ? 'does not' : 'do not'
-                } hold up`
-              : 'Every claim on this pack holds up'}
+                  bad.length === 1 ? 'is' : 'are'
+                } worth a second look`
+              : 'Every claim on this pack checks out'}
           </p>
           {!compact ? (
             <p className="claims-sub">

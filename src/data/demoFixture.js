@@ -113,7 +113,7 @@ export const DEMO_CLAIM_LABEL = {
     keepIn: 'an airtight dabba, away from the stove',
   },
   nameCheck: {
-    honestName: 'A maida biscuit with a little hazelnut',
+    honestName: 'A maida biscuit with 4% hazelnut',
     namedAfter: 'Hazelnut (4%) and oats (12.5%)',
     actuallyMostly: 'Refined wheat flour, maida (37.1%)',
     plainly:
